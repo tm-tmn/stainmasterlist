@@ -1,127 +1,83 @@
-// JavaScriptdatatable.js
+// 1. ตั้งค่า URL ของ Google Apps Script Web App
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzQoIJWsoyZPEGqsiUSrMfxs2xaYNmS5POl6QAQyR303c42eoEaxTqzhYoofu_XZMJycQ/exec';
 
-// ฟังก์ชันตัวกลางสำหรับคุยกับ Google Apps Script API
-async function callAPI(action, data = {}) {
-    const url = window.API_URL; // ตัวแปรนี้เราตั้งไว้ใน datatable.html แล้ว
-    try {
-        const response = await fetch(url, {
-            method: 'POST',
-            body: JSON.stringify({ action: action, data: data })
-        });
-        return await response.json();
-    } catch (err) {
-        console.error("API Error:", err);
-        throw err;
-    }
-}
 
 $(document).ready(function() {
-    // 🛡️ เช็คเบื้องต้นจากเครื่องผู้ใช้
-    const token = window.token; // มาจาก sessionStorage ที่ดึงไว้ใน datatable.html
-    const user = window.userName;
+  initStainTable();
+});
+
+window.userName = "<?= currentUserName ?>";
+  window.userLogin = "<?= userLogin ?>";
+  window.userDept = "<?= currentDept ?>"; 
+  window.token = "<?= currentToken ?>";
+
+  document.addEventListener('DOMContentLoaded', function() {
+    const manageUserMenu = document.getElementById('menu-manage-user');
+    const dept = window.userDept;
+
+    // 🚩 เงื่อนไข: ถ้าไม่ใช่ Admin (L3) ให้ซ่อนเมนู Manage USER ทันที
+    if (dept !== 'Admin') {
+      if (manageUserMenu) manageUserMenu.style.display = 'none';
+    }
+  });
+
+
+(function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlToken = urlParams.get('t');
+    const urlUser = urlParams.get('user');
     
-    if (!token || !user) {
+    // 🛡️ เช็คเบื้องต้น: ถ้า URL ไม่มีค่าสำคัญ ให้เด้งกลับหน้า Login ผ่านปุ่มกด
+    if (!urlToken || !urlUser) {
         Swal.fire({
             icon: 'error',
             title: 'การเข้าถึงถูกปฏิเสธ',
             text: 'โปรดเข้าสู่ระบบใหม่อีกครั้ง',
+            confirmButtonText: 'ตกลง',
             allowOutsideClick: false
         }).then(() => {
-            window.location.href = 'index.html';
+            redirectToLogin();
         });
         return;
     }
 
-    // 🛡️ ตรวจสอบกุญแจ (Token) กับ Server จริงๆ
-    validateTokenOnServer(token, user);
-    
-    // เริ่มโหลดตาราง
-    initStainTable();
-});
-
-async function validateTokenOnServer(token, user) {
-    try {
-        const res = await callAPI('validateSecureToken', { token, user });
-        if (!res.result) { // สมมติว่า server ส่ง { result: true/false }
-            Swal.fire('Session หมดอายุ', 'โปรดเข้าสู่ระบบใหม่', 'warning')
-                .then(() => window.location.href = 'index.html');
-        }
-    } catch (e) {
-        console.log("Bypass token check for offline testing");
-    }
-}
-
-/**
- * ฟังก์ชันดึงข้อมูลจาก Google Sheets มาแสดงในตาราง (เวอร์ชัน GitHub)
- */
-async function initStainTable(callback) {
-  Swal.fire({
-    title: 'กำลังดึงข้อมูล.....',
-    allowOutsideClick: false,
-    didOpen: () => Swal.showLoading()
-  });
-
-  try {
-    // 🚩 เรียกใช้ callAPI ที่เราสร้างไว้ โดยส่ง action ให้ตรงกับใน Code.gs
-    const res = await callAPI('getStainSheetData');
-    
-    // ตรวจสอบว่ามีข้อมูลส่งกลับมาไหม (res.data คือค่าที่ส่งมาจาก Google)
-    const data = res.data;
-
-    if (!data || data.length <= 1) {
-      Swal.close();
-      Swal.fire('ข้อมูลว่างเปล่า', 'ไม่พบข้อมูลในระบบ', 'info');
-      return;
-    }
-
-    // เก็บข้อมูลไว้ในตัวแปร Global เพื่อให้ฟังก์ชัน View/Edit เรียกใช้ได้
-    window.cachedStainData = data; 
-    
-    // ส่งข้อมูลไปสร้างโครงสร้างตาราง (ใช้ฟังก์ชันเดิมของคุณได้เลย)
-    renderTableStructure(data);
-
-    if (callback && typeof callback === 'function') callback();
-    
-    Swal.close();
-
-  } catch (err) {
-    console.error("Fetch Error:", err);
-    Swal.close();
-    Swal.fire('Error', 'การเชื่อมต่อผิดพลาด หรือ Server ไม่ตอบสนอง', 'error');
-  }
-}
-
+    // 🛡️ เช็คความถูกต้องของกุญแจกับ Server
+      google.script.run
+        .withSuccessHandler(isValid => {
+          if (!isValid) {
+            Swal.fire({
+              icon: 'warning',
+              title: 'Session หมดอายุ',
+              text: 'เพื่อความปลอดภัย โปรดเข้าสู่ระบบใหม่',
+              confirmButtonText: 'ตกลง',
+              allowOutsideClick: false
+            }).then(() => {
+                redirectToLogin();
+            });
+          }
+        })
+        .validateSecureToken(urlToken, urlUser);
+  })();
 
 /**
- * ฟังก์ชันสำหรับเปิดหน้าต่างเปลี่ยนรหัสผ่านตัวเอง (เวอร์ชัน GitHub)
+ * ฟังก์ชันสำหรับเปิดหน้าต่างเปลี่ยนรหัสผ่านตัวเอง
  */
 function openChangePasswordModal() {
-    // 1. ล้างค่าเก่าใน Input
-    const p1 = document.getElementById('self-new-pass');
-    const p2 = document.getElementById('self-confirm-pass');
-    
-    if (p1 && p2) {
-        p1.value = '';
-        p2.value = '';
-        p1.type = 'password';
-        p2.type = 'password';
-    }
+  document.getElementById('self-new-pass').value = '';
+  document.getElementById('self-confirm-pass').value = '';
   
-    // 2. รีเซ็ตไอคอนลูกตา (ถ้าคุณใช้ Bootstrap Icons)
-    const eyeIcons = document.querySelectorAll('#selfChangePassModal .bi');
-    eyeIcons.forEach(icon => {
-        icon.classList.remove('bi-eye-slash-fill');
-        icon.classList.add('bi-eye-fill');
-    });
+  // รีเซ็ตให้เป็น type password และไอคอนตาเปิด
+  const p1 = document.getElementById('self-new-pass');
+  const p2 = document.getElementById('self-confirm-pass');
+  p1.type = 'password';
+  p2.type = 'password';
   
-    // 3. สั่งเปิด Modal ด้วย Bootstrap 5
-    const modalElement = document.getElementById('selfChangePassModal');
-    const myModal = new bootstrap.Modal(modalElement);
-    myModal.show();
+  const myModal = new bootstrap.Modal(document.getElementById('selfChangePassModal'));
+  myModal.show();
 }
 
 /**
- * สลับการมองเห็นรหัสผ่าน (ใช้ของเดิมได้เลย)
+ * สลับการมองเห็นรหัสผ่าน
  */
 function toggleSelfPassword(inputId, btn) {
   const input = document.getElementById(inputId);
@@ -136,12 +92,12 @@ function toggleSelfPassword(inputId, btn) {
 }
 
 /**
- * ส่งข้อมูลเปลี่ยนรหัสผ่าน (เวอร์ชัน GitHub Fetch API)
+ * ส่งข้อมูลเปลี่ยนรหัสผ่าน
  */
-async function submitSelfChangePass() {
+function submitSelfChangePass() {
   const p1 = document.getElementById('self-new-pass').value.trim();
   const p2 = document.getElementById('self-confirm-pass').value.trim();
-  const currentLoginID = window.userLogin; // ดึงจาก sessionStorage ที่ทำไว้ใน Bridge Script
+  const currentLoginID = window.userLogin;
 
   if (!currentLoginID || currentLoginID === "undefined") {
     Swal.fire('ผิดพลาด', 'ไม่พบข้อมูลบัญชีผู้ใช้ กรุณาลอง Login ใหม่', 'error');
@@ -163,7 +119,7 @@ async function submitSelfChangePass() {
     Swal.fire({
       icon: 'error',
       title: 'รูปแบบไม่ถูกต้อง',
-      text: 'รหัสผ่านต้องเป็นภาษาอังกฤษ ตัวเลข และสัญลักษณ์เท่านั้น',
+      text: 'รหัสผ่านต้องเป็นภาษาอังกฤษ ตัวเลข และสัญลักษณ์เท่านั้น ห้ามมีภาษาไทยหรือเว้นวรรค',
       confirmButtonColor: '#d33'
     });
     return;
@@ -174,167 +130,168 @@ async function submitSelfChangePass() {
     allowOutsideClick: false,
     didOpen: () => { Swal.showLoading(); }
   });
+  
+    google.script.run
+    .withSuccessHandler(function(res) {
+      Swal.close();
+      if (res.success) {
+        // 1. ปิด Modal
+        const modalElement = document.getElementById('selfChangePassModal');
+        const modalInstance = bootstrap.Modal.getInstance(modalElement);
+        if (modalInstance) modalInstance.hide();
+        
+        // ✨ จุดสำคัญ: สั่งทำลาย Token ใน Server ทันที
+        const currentToken = window.token; 
+        if (currentToken) {
+          google.script.run.destroyTokenOnServer(currentToken); // สั่งทำลายใน Cache
+        }
 
-  try {
-    // 🚩 เปลี่ยนมาใช้ callAPI ที่เราจะสร้างเป็นตัวกลาง
-    const res = await callAPI('updatePassword', { 
-      loginID: currentLoginID, 
-      newPass: p1,
-      token: window.token 
-    });
+        // 2. แจ้งสำเร็จ และเมื่อกด "ตกลง" ให้ Logout ทันที
+        Swal.fire({
+          icon: 'success',
+          title: 'สำเร็จ',
+          text: 'เปลี่ยนรหัสผ่านเรียบร้อยแล้ว ระบบจะนำคุณออกจากระบบเพื่อเข้าสู่ระบบใหม่',
+          confirmButtonText: 'ตกลง',
+          allowOutsideClick: false
+        }).then(() => {
+          // 3. ล้างข้อมูลในเครื่อง Browser
+          sessionStorage.clear();
+          window.token = null;
 
-    Swal.close();
-    if (res.success) {
-      // 1. ปิด Modal
-      const modalElement = document.getElementById('selfChangePassModal');
-      const modalInstance = bootstrap.Modal.getInstance(modalElement);
-      if (modalInstance) modalInstance.hide();
-
-      // 2. แจ้งสำเร็จและ Logout
-      Swal.fire({
-        icon: 'success',
-        title: 'สำเร็จ',
-        text: 'เปลี่ยนรหัสผ่านเรียบร้อยแล้ว โปรดเข้าสู่ระบบใหม่',
-        confirmButtonText: 'ตกลง',
-        allowOutsideClick: false
-      }).then(() => {
-        sessionStorage.clear();
-        window.location.replace('index.html'); 
-      });
-      
-    } else {
-      Swal.fire('ล้มเหลว', res.message || 'ไม่สามารถเปลี่ยนรหัสผ่านได้', 'error');
-    }
-  } catch (err) {
-    Swal.close();
-    Swal.fire('Error', 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้', 'error');
-  }
+          // 4. ดีดกลับหน้า Login ด้วย .replace 
+          // (การใช้ .replace จะช่วยแทนที่ประวัติหน้าปัจจุบัน ทำให้กด Back กลับมาได้ยากขึ้น)
+          const baseUrl = window.scriptUrl || "<?= scriptUrl ?>";
+          window.top.location.replace(baseUrl + "?page=login"); 
+        });
+        
+      } else {
+        Swal.fire('ล้มเหลว', res.message, 'error');
+      }
+    })
+    .withFailureHandler(err => {
+        Swal.close();
+        Swal.fire('Error', 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้', 'error');
+    })
+    .updatePasswordInSheet(currentLoginID, p1);
 }
 
-/**
- * ฟังก์ชันสร้างตาราง (ทำงานบน Browser 100%)
- */
+function initStainTable(callback) {
+  Swal.fire({
+    title: 'กำลังดึงข้อมูล.....',
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading()
+  });
+
+  google.script.run
+    .withSuccessHandler(function(data) {
+      if (!data || data.length <= 1) {
+        Swal.fire('ข้อมูลว่างเปล่า', 'ไม่พบข้อมูลในระบบ', 'info');
+        return;
+      }
+      window.cachedStainData = data; 
+      renderTableStructure(data);
+      if (callback && typeof callback === 'function') callback();
+      Swal.close();
+    })
+    .withFailureHandler(err => Swal.fire('Error', 'การเชื่อมต่อผิดพลาด', 'error'))
+    .getStainSheetData();
+}
+
 function renderTableStructure(data) {
   if (!data || data.length === 0) return;
 
-  // คัดลอกข้อมูลเพื่อไม่ให้กระทบ window.cachedStainData ตัวจริง
   const rows = data.slice(1);
-  
-  // กลับด้านข้อมูลเพื่อให้แถวล่าสุดจาก Sheet มาอยู่บนสุด
+  // กลับด้านข้อมูลเพื่อให้แถวล่าสุดจาก Sheet มาอยู่บนสุดของตาราง
   rows.reverse(); 
 
-  // เลือกคอลัมน์ที่จะแสดง (Index ตาม Google Sheet)
   const displayCols = [1, 2, 9, 10, 11, 12, 18, 20, 22, 40]; 
 
-  // ทำลาย DataTable เก่าถ้ามีอยู่ เพื่อวาดใหม่
   if ($.fn.DataTable.isDataTable('#stainTable')) {
     $('#stainTable').DataTable().destroy();
   }
   $('#stainTable').empty();
 
-  // สร้าง Header
-  let headerHtml = `
-    <thead>
-      <tr>
-        <th>Site</th>
-        <th>S/N</th>
-        <th>Brand</th>
-        <th>Staining</th>
-        <th>Fixing</th>
-        <th>Buffer</th>
-        <th>Undiluted 1<br><small>(mm:ss)</small></th>
-        <th>Diluted 1<br><small>(mm:ss)</small></th>
-        <th>Diluted 2<br><small>(mm:ss)</small></th>
-        <th>Recorded By</th>
-        <th class="text-center">Details</th>
-      </tr>
-    </thead>
-    <tbody id="stainTableBody"></tbody>`;
+  // สร้าง Header ให้ครบทุกคอลัมน์
+  let headerHtml = '<thead><tr>';
+  headerHtml += '<th>Site</th>';
+  headerHtml += '<th>S/N</th>';
+  headerHtml += '<th>Brand</th>';
+  headerHtml += '<th>Staining</th>';
+  headerHtml += '<th>Fixing</th>';
+  headerHtml += '<th>Buffer</th>';
+  headerHtml += '<th>Undiluted 1<br><small>(mm:ss)</small></th>';
+  headerHtml += '<th>Diluted 1<br><small>(mm:ss)</small></th>';
+  headerHtml += '<th>Diluted 2<br><small>(mm:ss)</small></th>';
+  headerHtml += '<th>Recorded By</th>';
+  headerHtml += '<th class="text-center">Details</th>';
+  headerHtml += '</tr></thead><tbody id="stainTableBody"></tbody>';
   
   $('#stainTable').append(headerHtml);
 
-  let bodyHtml = '';
+let bodyHtml = '';
   rows.forEach((row, idx) => {
-    // คำนวณหาแถวที่ถูกต้องใน Google Sheets 
-    // เพื่อใช้ส่งไปให้ openRecordDetail() ดึงข้อมูลจาก cachedStainData ได้แม่นยำ
+    // คำนวณหาแถวที่ถูกต้องใน Google Sheets (สำคัญมากสำหรับการเปิด View)
+    // แถวที่ 1 คือ Header, ดังนั้นแถวข้อมูลเริ่มที่ 2
     let realSheetIndex = (data.length - 1) - idx;
 
     bodyHtml += '<tr>';
     displayCols.forEach(i => {
       let cellData = row[i] || '-';
-      
-      if (i === 40) { // ส่วนแสดงชื่อผู้บันทึกและเวลา
-        let rawTimestamp = row[0]; // ใช้คอลัมน์ A (Timestamp)
+      if (i === 40) {
+        let rawTimestamp = row[0];
         let d = new Date(rawTimestamp);
         let displayTime = (!isNaN(d.getTime())) ? d.toLocaleString('th-TH').replace(',', '') : rawTimestamp;
-        bodyHtml += `
-          <td>
-            <div class="d-flex flex-column align-items-center">
-              <span class="badge-user mb-1">${cellData}</span>
-              <small class="text-muted" style="font-size: 0.7rem;">${displayTime}</small>
-            </div>
-          </td>`;
-      } else if ([18, 20, 22].includes(i)) { // เน้นตัวหนาส่วนที่เป็นเวลา
+        bodyHtml += `<td><div class="d-flex flex-column align-items-center">
+                        <span class="badge-user mb-1">${cellData}</span>
+                        <small class="text-muted" style="font-size: 0.7rem;">${displayTime}</small>
+                     </div></td>`;
+      } else if ([18, 20, 22].includes(i)) {
         bodyHtml += `<td><span class="fw-bold text-primary">${cellData}</span></td>`;
       } else {
         bodyHtml += `<td>${cellData}</td>`;
       }
     });
 
-    // ปุ่ม View (ส่ง Index ของแถวใน Google Sheet เข้าไป)
-    bodyHtml += `
-      <td class="text-center">
-        <button class="btn btn-sm btn-view text-white rounded-pill px-3" onclick="openRecordDetail(${realSheetIndex})">
-          <i class="bi bi-eye-fill me-1"></i> View
-        </button>
-      </td>`;
+    bodyHtml += `<td class="text-center">
+                   <button class="btn btn-sm btn-view text-white rounded-pill px-3" onclick="openRecordDetail(${realSheetIndex})">
+                   <i class="bi bi-eye-fill me-1"></i> View</button>
+                 </td>`;
     bodyHtml += '</tr>';
   });
   
   $('#stainTableBody').html(bodyHtml);
-
-  // สั่งให้ DataTable ทำงาน
   $('#stainTable').DataTable({ 
     responsive: true, 
     pageLength: 10,
-    order: [], 
+    order: [], // ไม่ต้องเรียงซ้ำ เพราะเรา reverse() มาแล้ว
     language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/th.json' }
   });
 }
 
-/**
- * ฟังก์ชันแสดงรายละเอียดข้อมูลใน Modal (เวอร์ชัน GitHub)
- */
 function openRecordDetail(rowIndex) {
   rowIndex = parseInt(rowIndex);
-  
-  // ตรวจสอบว่ามีข้อมูลใน Cache หรือไม่
-  if (!window.cachedStainData || !window.cachedStainData[rowIndex]) {
-    console.error("Data not found for index:", rowIndex);
-    return;
-  }
+  // ดึงข้อมูลจาก Cache ล่าสุด (ตรวจสอบให้มั่นใจว่า initStainTable อัปเดตตัวแปรนี้แล้ว)
+  if (!window.cachedStainData || !window.cachedStainData[rowIndex]) return;
 
   const rowData = window.cachedStainData[rowIndex];
-  
-  // เริ่มสร้าง HTML ตาราง (คงสไตล์เส้นขอบ 2px และสีตามที่คุณออกแบบไว้)
   let html = '<table class="table table-bordered align-middle mb-0" style="border: 2px solid #000; width: 100%;">';
   html += '<tbody>';
 
   // --- SECTION 1: SITE & S/N ---
   html += '<tr style="border-bottom: 1px solid #000;">';
   html += ' <th colspan="2" class="text-center bg-light" style="border-right: 2px solid #000; font-weight: bold; width: 70%; padding: 8px;">Site</th>';
-  html += ` <td class="text-center fw-bold text-primary" style="width: 30%; padding: 8px;">${rowData[1] || '-'}</td>`;
+  html += ' <td class="text-center fw-bold text-primary" style="width: 30%; padding: 8px;">' + (rowData[1] || '-') + '</td>';
   html += '</tr>';
   html += '<tr style="border-bottom: 2px solid #000;">';
   html += ' <th colspan="2" class="text-center bg-light" style="border-right: 2px solid #000; font-weight: bold; padding: 8px;">S/N</th>';
-  html += ` <td class="text-center fw-bold text-primary" style="padding: 8px;">${rowData[2] || '-'}</td>`;
+  html += ' <td class="text-center fw-bold text-primary" style="padding: 8px;">' + (rowData[2] || '-') + '</td>';
   html += '</tr>';
 
   // --- SECTION 2: SERVICE SETTING ---
   html += '<tr>';
   html += ' <th rowspan="6" class="text-center bg-light" style="border-right: 1px solid #000; vertical-align: middle; font-weight: bold; width: 30%;">Service Setting</th>';
   html += ' <th class="bg-light" style="border-right: 2px solid #000; font-weight: normal; width: 40%; padding: 8px;">Prefixing</th>';
-  html += ` <td class="text-center" style="width: 30%; padding: 8px;">${rowData[3] || '-'}</td>`;
+  html += ' <td class="text-center" style="width: 30%; padding: 8px;">' + (rowData[3] || '-') + '</td>';
   html += '</tr>';
 
   const subFields = [
@@ -347,22 +304,25 @@ function openRecordDetail(rowIndex) {
 
   subFields.forEach((item, index) => {
     const borderBottom = (index === subFields.length - 1) ? '2px solid #000' : '1px solid #000';
-    html += `<tr style="border-bottom: ${borderBottom};">`;
-    html += ` <th class="bg-light" style="border-right: 2px solid #000; font-weight: normal; padding: 8px;">${item.label}</th>`;
-    html += ` <td class="text-center" style="padding: 8px;">${item.val || '-'}</td>`;
+    html += '<tr style="border-bottom: ' + borderBottom + ';">';
+    html += ' <th class="bg-light" style="border-right: 2px solid #000; font-weight: normal; padding: 8px;">' + item.label + '</th>';
+    html += ' <td class="text-center" style="padding: 8px;">' + (item.val || '-') + '</td>';
     html += '</tr>';
   });
 
-  // --- SECTION 3-4: STAIN TYPE & FIXING & BUFFER --- (รวมเพื่อความรวดเร็ว)
-  html += `<tr><th rowspan="2" class="text-center bg-light" style="border-right: 1px solid #000; vertical-align: middle; font-weight: bold;">Stain type</th><th class="bg-light" style="border-right: 2px solid #000; font-weight: normal; padding: 8px;">Brand</th><td class="text-center">${rowData[9] || '-'}</td></tr>`;
-  html += `<tr style="border-bottom: 1px solid #000;"><th class="bg-light" style="border-right: 2px solid #000; font-weight: normal; padding: 8px;">Single/Double staining?</th><td class="text-center">${rowData[10] || '-'}</td></tr>`;
-  html += `<tr style="border-bottom: 1px solid #000;"><th class="text-center bg-light" style="border-right: 1px solid #000; font-weight: bold;">Fixing</th><th class="bg-light" style="border-right: 2px solid #000; font-weight: normal; padding: 8px;">Stain or Met Fix</th><td class="text-center">${rowData[11] || '-'}</td></tr>`;
-  html += `<tr style="border-bottom: 1px solid #000;"><th class="text-center bg-light" style="border-right: 1px solid #000; font-weight: bold;">Buffer type</th><th class="bg-light" style="border-right: 2px solid #000; font-weight: normal; padding: 8px;">Concentrated/Tablet</th><td class="text-center">${rowData[12] || '-'}</td></tr>`;
-  html += `<tr><th rowspan="2" class="text-center bg-light" style="border-right: 1px solid #000; vertical-align: middle; font-weight: bold;">Smear Fan</th><th class="bg-light" style="border-right: 2px solid #000; font-weight: normal; padding: 8px;">Fan 1</th><td class="text-center">${rowData[13] || '-'}</td></tr>`;
-  html += `<tr style="border-bottom: 2px solid #000;"><th class="bg-light" style="border-right: 2px solid #000; font-weight: normal; padding: 8px;">Fan 2</th><td class="text-center">${rowData[14] || '-'}</td></tr>`;
+  // --- SECTION 3: STAIN TYPE ---
+  html += '<tr><th rowspan="2" class="text-center bg-light" style="border-right: 1px solid #000; vertical-align: middle; font-weight: bold;">Stain type</th>';
+  html += '<th class="bg-light" style="border-right: 2px solid #000; font-weight: normal; padding: 8px;">Brand</th><td class="text-center">' + (rowData[9] || '-') + '</td></tr>';
+  html += '<tr style="border-bottom: 1px solid #000;"><th class="bg-light" style="border-right: 2px solid #000; font-weight: normal; padding: 8px;">Single/Double staining?</th><td class="text-center">' + (rowData[10] || '-') + '</td></tr>';
+
+  // --- SECTION 4: FIXING & BUFFER & FAN ---
+  html += '<tr style="border-bottom: 1px solid #000;"><th class="text-center bg-light" style="border-right: 1px solid #000; font-weight: bold;">Fixing</th><th class="bg-light" style="border-right: 2px solid #000; font-weight: normal; padding: 8px;">Stain or Met Fix</th><td class="text-center">' + (rowData[11] || '-') + '</td></tr>';
+  html += '<tr style="border-bottom: 1px solid #000;"><th class="text-center bg-light" style="border-right: 1px solid #000; font-weight: bold;">Buffer type</th><th class="bg-light" style="border-right: 2px solid #000; font-weight: normal; padding: 8px;">Concentrated/Tablet</th><td class="text-center">' + (rowData[12] || '-') + '</td></tr>';
+  html += '<tr><th rowspan="2" class="text-center bg-light" style="border-right: 1px solid #000; vertical-align: middle; font-weight: bold;">Smear Fan</th><th class="bg-light" style="border-right: 2px solid #000; font-weight: normal; padding: 8px;">Fan 1</th><td class="text-center">' + (rowData[13] || '-') + '</td></tr>';
+  html += '<tr style="border-bottom: 2px solid #000;"><th class="bg-light" style="border-right: 2px solid #000; font-weight: normal; padding: 8px;">Fan 2</th><td class="text-center">' + (rowData[14] || '-') + '</td></tr>';
 
   // --- SECTION 5: STAIN SETTING ---
-  html += `<tr><th rowspan="11" class="text-center bg-light" style="border-right: 1px solid #000; vertical-align: middle; font-weight: bold;">Stain Setting</th><th class="bg-light" style="border-right: 2px solid #000; font-weight: normal; padding: 8px;">Met Prefix</th><td class="text-center">${rowData[15] || '-'}</td></tr>`;
+  html += '<tr><th rowspan="11" class="text-center bg-light" style="border-right: 1px solid #000; vertical-align: middle; font-weight: bold;">Stain Setting</th><th class="bg-light" style="border-right: 2px solid #000; font-weight: normal; padding: 8px;">Met Prefix</th><td class="text-center">' + (rowData[15] || '-') + '</td></tr>';
   const stainFields = [
     { label: 'Met Fix (mm:ss)', val: rowData[16] }, { label: 'Stain Prefix', val: rowData[17] },
     { label: 'Undilute Stain 1 (mm:ss)', val: rowData[18] }, { label: 'Stain 1 Dilution Ratio:', val: rowData[19] },
@@ -375,12 +335,13 @@ function openRecordDetail(rowIndex) {
     html += `<tr style="border-bottom: ${borderBottom};"><th class="bg-light" style="border-right: 2px solid #000; font-weight: normal; padding: 8px;">${item.label}</th><td class="text-center">${item.val || '-'}</td></tr>`;
   });
 
-  // --- SECTION 6-7: ADDITION & REPLACEMENT ---
+  // --- SECTION 6: ADDITION ---
   html += `<tr><th rowspan="4" class="text-center bg-light" style="border-right: 1px solid #000; vertical-align: middle; font-weight: bold;">Stain Addition Setting</th><th class="bg-light" style="border-right: 2px solid #000; font-weight: normal; padding: 8px;">Methanol</th><td class="text-center">${rowData[26] || '-'} / ${rowData[30] || '0'} Slides</td></tr>`;
   html += `<tr><th class="bg-light" style="border-right: 2px solid #000; font-weight: normal; padding: 8px;">Undiluted Stain 1</th><td class="text-center">${rowData[27] || '-'} / ${rowData[31] || '0'} Slides</td></tr>`;
   html += `<tr><th class="bg-light" style="border-right: 2px solid #000; font-weight: normal; padding: 8px;">Diluted Stain 1</th><td class="text-center">${rowData[28] || '-'}</td></tr>`;
   html += `<tr style="border-bottom: 2px solid #000;"><th class="bg-light" style="border-right: 2px solid #000; font-weight: normal; padding: 8px;">Diluted Stain 2</th><td class="text-center">${rowData[29] || '-'}</td></tr>`;
 
+  // --- SECTION 7: REPLACEMENT ---
   html += `<tr><th rowspan="4" class="text-center bg-light" style="border-right: 1px solid #000; vertical-align: middle; font-weight: bold;">Stain Replacement Setting</th><th class="bg-light" style="border-right: 2px solid #000; font-weight: normal; padding: 8px;">Methanol</th><td class="text-center">${rowData[32] || '-'} / ${rowData[33] || '-'}</td></tr>`;
   html += `<tr><th class="bg-light" style="border-right: 2px solid #000; font-weight: normal; padding: 8px;">Undiluted Stain 1</th><td class="text-center">${rowData[34] || '-'} / ${rowData[35] || '-'}</td></tr>`;
   html += `<tr><th class="bg-light" style="border-right: 2px solid #000; font-weight: normal; padding: 8px;">Diluted Stain 1</th><td class="text-center">${rowData[36] || '-'} / ${rowData[37] || '-'}</td></tr>`;
@@ -388,19 +349,48 @@ function openRecordDetail(rowIndex) {
 
   html += '</tbody></table>';
 
-  // --- RECORD INFO & BUTTONS ---
+  // --- ACTION BUTTONS ---
+// --- ACTION BUTTONS & RECORD INFO ---
+  
+  // ฟังก์ชันช่วยจัดรูปแบบวันที่ให้ปลอดภัย
   let timestamp = '-';
   if (rowData[0]) {
-    const d = new Date(rowData[0]);
-    timestamp = (!isNaN(d.getTime())) ? d.toLocaleString('th-TH') : rowData[0];
+    try {
+      const dateObj = new Date(rowData[0]);
+      // เช็คว่า dateObj ใช้งานได้จริงหรือไม่
+      if (!isNaN(dateObj.getTime())) {
+        timestamp = dateObj.toLocaleString('th-TH', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        });
+      } else {
+        // หากยัง Invalid ให้แสดงค่าดิบจาก Sheet (Col A) ไปตรงๆ
+        timestamp = rowData[0]; 
+      }
+    } catch (e) {
+      timestamp = rowData[0];
+    }
   }
+
+  const recordedBy = rowData[40] || '-';
 
   html += `
   <div class="d-flex justify-content-between align-items-center mt-4">
     <div class="text-muted small">
-      <div class="mb-1"><i class="bi bi-clock-history me-1 text-primary"></i> <strong>Recorded at:</strong> ${timestamp}</div>
-      <div><i class="bi bi-person-badge me-1 text-primary"></i> <strong>By:</strong> ${rowData[40] || '-'}</div>
+      <div class="mb-1">
+        <i class="bi bi-clock-history me-1 text-primary"></i> 
+        <strong>Recorded at:</strong> ${timestamp}
+      </div>
+      <div>
+        <i class="bi bi-person-badge me-1 text-primary"></i> 
+        <strong>By:</strong> ${recordedBy}
+      </div>
     </div>
+
     <div class="d-flex gap-2">
       <button type="button" class="btn btn-warning px-4 shadow-sm" onclick="editRecord(${rowIndex})">
         <i class="bi bi-pencil-square me-2"></i> แก้ไข
@@ -411,20 +401,21 @@ function openRecordDetail(rowIndex) {
     </div>
   </div>`;
 
-  // แสดงผลลงใน Modal
-  $('#detailBody').html(html);
+$('#detailBody').html(html);
+
   const modalEl = document.getElementById('detailModal');
-  const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+  
+  // ล้างค่าค้างเก่าของ Bootstrap
+  const oldInstance = bootstrap.Modal.getInstance(modalEl);
+  if (oldInstance) { oldInstance.hide(); }
+
+  const modalInstance = new bootstrap.Modal(modalEl);
   modalInstance.show();
 }
 
-/**
- * ฟังก์ชันลบข้อมูล (เวอร์ชัน GitHub Fetch API)
- */
-async function deleteRecord(rowIndex) {
+function deleteRecord(rowIndex) {
     const rowData = window.cachedStainData[rowIndex];
-    
-    const result = await Swal.fire({
+    Swal.fire({
         title: 'ยืนยันการลบข้อมูล?',
         text: `คุณกำลังจะลบข้อมูลของ Site: ${rowData[1]} ใช่หรือไม่?`,
         icon: 'warning',
@@ -433,486 +424,19 @@ async function deleteRecord(rowIndex) {
         confirmButtonText: 'ลบข้อมูล',
         cancelButtonText: 'ยกเลิก',
         reverseButtons: true
-    });
-
-    if (result.isConfirmed) {
-        Swal.fire({ 
-            title: 'กำลังลบ...', 
-            allowOutsideClick: false,
-            didOpen: () => Swal.showLoading() 
-        });
-
-        try {
-            // 🚩 เรียกใช้ callAPI เพื่อส่ง rowIndex ไปลบที่ Server
-            // หมายเหตุ: rowIndex ในหน้าเว็บเราตรงกับลำดับแถวใน Google Sheet (รวม Header) แล้ว
-            const res = await callAPI('deleteStainRecord', { rowIndex: rowIndex });
-
-            Swal.close();
-            if (res.success) {
-                await Swal.fire({ 
-                    icon: 'success', 
-                    title: 'ลบสำเร็จ', 
-                    timer: 1500,
-                    showConfirmButton: false 
-                });
-                
-                // ปิด Modal รายละเอียด
-                const modalEl = document.getElementById('detailModal');
-                const modalInstance = bootstrap.Modal.getInstance(modalEl);
-                if (modalInstance) modalInstance.hide();
-                
-                // รีโหลดตารางใหม่เพื่อให้ข้อมูลเป็นปัจจุบัน
-                initStainTable(); 
-            } else {
-                Swal.fire('ล้มเหลว', res.message || 'ไม่สามารถลบข้อมูลได้', 'error');
-            }
-        } catch (err) {
-            Swal.close();
-            Swal.fire('Error', 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้', 'error');
-        }
-    }
-}
-
-/** * จัดการการแสดงผลฟิลด์ตามประเภทการ Fixing (Methanol vs Stain)
- */
-function handleFixingChangeEdit() {
-  const val = document.getElementById('fixing')?.value;
-  const mPreContainer = document.getElementById('edit-container-methanol-prefix');
-  const mFixContainer = document.getElementById('edit-container-methanol-fix');
-  const sPreContainer = document.getElementById('edit-container-stain-prefix');
-
-  const mPre = mPreContainer?.querySelector('select');
-  const mFix = mFixContainer?.querySelector('select');
-  const sPre = sPreContainer?.querySelector('select');
-
-  const addMethTabBtn = document.querySelector('[data-bs-target="#add-meth"]');
-  const repMethTabBtn = document.querySelector('[data-bs-target="#rep-meth"]');
-
-  if (val === 'Methanol') {
-    if (mPreContainer) mPreContainer.style.display = 'block';
-    if (mFixContainer) mFixContainer.style.display = 'block';
-    if (sPreContainer) sPreContainer.style.display = 'none';
-    
-    if (mPre) mPre.disabled = false;
-    if (mFix) mFix.disabled = false;
-    if (sPre) sPre.disabled = true;
-
-    if (addMethTabBtn) addMethTabBtn.parentElement.style.display = 'block';
-    if (repMethTabBtn) repMethTabBtn.parentElement.style.display = 'block';
-
-    // ✨ ใช้ getOrCreateInstance เพื่อความชัวร์ใน BS5
-    if (addMethTabBtn) bootstrap.Tab.getOrCreateInstance(addMethTabBtn).show();
-  } else if (val === 'Stain') {
-    if (mPreContainer) mPreContainer.style.display = 'none';
-    if (mFixContainer) mFixContainer.style.display = 'none';
-    if (sPreContainer) sPreContainer.style.display = 'block';
-
-    if (mPre) mPre.disabled = true;
-    if (mFix) mFix.disabled = true;
-    if (sPre) sPre.disabled = false;
-
-    if (addMethTabBtn) addMethTabBtn.parentElement.style.display = 'none';
-    if (repMethTabBtn) repMethTabBtn.parentElement.style.display = 'none';
-
-    const addUndilutedTrigger = document.querySelector('[data-bs-target="#add-undiluted"]');
-    if (addUndilutedTrigger) bootstrap.Tab.getOrCreateInstance(addUndilutedTrigger).show();
-  } else {
-    [mPreContainer, mFixContainer, sPreContainer].forEach(el => { if(el) el.style.display = 'block'; });
-    if (addMethTabBtn) addMethTabBtn.parentElement.style.display = 'block';
-  }
-}
-
-/**
- * จัดการฟิลด์สำหรับกรณีการย้อมแบบ Double Staining
- */
-function handleStainTypeChange() {
-  const stainTypeSelect = document.getElementById('stainType');
-  if (!stainTypeSelect) return;
-  const isDouble = (stainTypeSelect.value.includes("Double"));
-
-  // รายการ ID ที่ต้องซ่อน/แสดงถ้าไม่ใช่ Double
-  const stain2Fields = ['stain2_ratio', 'dilutedStain2_time', 'add_diluted2_time'];
-  stain2Fields.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) {
-      const parent = el.closest('[class*="col-"]');
-      if (parent) parent.style.display = isDouble ? 'block' : 'none';
-      el.disabled = !isDouble;
-      if (!isDouble) el.selectedIndex = 0; 
-    }
-  });
-
-  const tabAdd2 = document.getElementById('tab-stain2-addition');
-  const tabRep2 = document.getElementById('tab-replace-stain2');
-  if (tabAdd2) tabAdd2.style.setProperty('display', isDouble ? 'block' : 'none', 'important');
-  if (tabRep2) tabRep2.style.setProperty('display', isDouble ? 'block' : 'none', 'important');
-}
-
-/** * ฟังก์ชันสำหรับ Time Stepper (กดค้างเพื่อเพิ่ม/ลดเวลา)
- */
-let stepTimer = null;
-function stepTime(btn, type, amount) {
-  const performStep = () => {
-    const container = btn.closest('.custom-time-picker');
-    if(!container) return;
-    const hhInput = container.querySelector('input[id$="_hh"]');
-    const mmInput = container.querySelector('input[id$="_mm"]');
-    const hiddenInput = container.querySelector('input[type="hidden"]');
-
-    if (type === 'HH') {
-      let val = parseInt(hhInput.value) + amount;
-      if (val < 0) val = 24; else if (val > 24) val = 0;
-      hhInput.value = val.toString().padStart(2, '0');
-      if (val === 24) mmInput.value = "00";
-    } else {
-      let val = parseInt(mmInput.value) + amount;
-      if (parseInt(hhInput.value) === 24) { val = 0; } 
-      else { if (val < 0) val = 59; else if (val > 59) val = 0; }
-      mmInput.value = val.toString().padStart(2, '0');
-    }
-    hiddenInput.value = hhInput.value + ":" + mmInput.value;
-  };
-
-  const startStepping = () => {
-    performStep();
-    clearInterval(stepTimer);
-    stepTimer = setTimeout(() => { stepTimer = setInterval(performStep, 100); }, 500);
-  };
-
-  const stopStepping = () => {
-    clearTimeout(stepTimer);
-    clearInterval(stepTimer);
-  };
-
-  btn.addEventListener('mouseup', stopStepping, { once: true });
-  btn.addEventListener('mouseleave', stopStepping, { once: true });
-  startStepping();
-}
-
-function validateAlphanumeric(input) {
-  input.value = input.value.replace(/[^A-Za-z0-9\s\.\(\)\:]/g, '');
-}
-
-function validateAmtWash1(input) {
-  let val = parseInt(input.value);
-  if (val > 23) input.value = 23;
-}
-
-function validateAmtWash2(input) {
-  let val = parseInt(input.value);
-  if (val > 62) input.value = 62;
-}
-
-/**
- * โหลดตัวเลือก (Options) จาก Google Sheets มาใส่ใน Select ทุกตัวที่มี data-source
- */
-async function fetchOptionsForEdit() {
-  try {
-    // 🚩 เรียกใช้ callAPI เพื่อขอข้อมูล Master Settings
-    const options = await callAPI('getMasterSettings');
-    
-    const selects = document.querySelectorAll('#updateForm .form-select[data-source]');
-    selects.forEach(select => {
-      const source = select.getAttribute('data-source').trim();
-      
-      if (options && options[source]) {
-        let html = '<option value="">-- เลือก --</option>';
-        options[source].forEach(val => {
-          if (val !== null && val !== "") {
-            html += `<option value="${val}">${val}</option>`;
-          }
-        });
-        select.innerHTML = html;
-      }
-    });
-    return true;
-  } catch (err) {
-    console.error("fetchOptionsForEdit Error:", err);
-    throw err;
-  }
-}
-
-/**
- * เติมข้อมูลจากแถวที่เลือก (rowData) ลงในฟอร์มแก้ไข
- */
-function fillEditFormStepByStep(rowData, rowIndex) {
-  const setValById = (id, value) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-
-    const val = (value === undefined || value === null) ? '' : String(value).trim();
-
-    // ถ้าเป็น Select และค่ายังไม่ถูกโหลดในขั้นตอนนี้ ให้สร้าง Option รอไว้ (Prevent blank)
-    if (el.tagName === 'SELECT' && val !== '' && val !== '-') {
-      const exists = Array.from(el.options).some(opt => opt.value === val);
-      if (!exists) {
-        el.add(new Option(val, val, true, true));
-      }
-    }
-
-    el.value = val;
-    el.dispatchEvent(new Event('change', { bubbles: true }));
-  };
-
-  try {
-    // 0. ข้อมูลพื้นฐาน
-    setValById('rowIndex', rowIndex);
-    // rowData[0] มักจะเป็น Timestamp หรือ ID
-    setValById('id', rowData[0]); 
-
-    // 1. Mapping ข้อมูล Index 1-31 (General -> Stain Setting)
-    const fields = [
-      'id', 'site', 'sn', 'prefixing', 'rinsing', 'amtWash1', 'amtWash2', 'extTime', 
-      'prepMethod', 'mixed', 'stainType', 'fixing', 'bufferType', 'fan1', 'fan2', 
-      'methanolPrefix', 'methanolFix', 'stainPrefix', 'undilutedStain1_time', 
-      'stain1_ratio', 'dilutedStain1_time', 'stain2_ratio', 'dilutedStain2_time', 
-      'rinseCount', 'dryTime', 'heaterStatus', 'add_meth_time', 'add_undiluted_time', 
-      'add_diluted_time', 'add_diluted2_time', 'add_meth_slides', 'add_undiluted_slides'
-    ];
-    
-    fields.forEach((id, idx) => {
-      if (idx < rowData.length) setValById(id, rowData[idx]);
-    });
-
-    // 2. Mapping Stain Replacement (Index 32-39)
-    const replacementConfigs = [
-      { condId: 'replace_meth_cond',       prefix: 'replace_meth_val',       cIdx: 32, tIdx: 33 },
-      { condId: 'replace_undiluted_cond', prefix: 'replace_undiluted_val', cIdx: 34, tIdx: 35 },
-      { condId: 'replace_diluted1_cond',  prefix: 'replace_diluted1_val',  cIdx: 36, tIdx: 37 },
-      { condId: 'replace_diluted2_cond',  prefix: 'replace_diluted2_val',  cIdx: 38, tIdx: 39 }
-    ];
-
-    replacementConfigs.forEach(item => {
-      const condVal = String(rowData[item.cIdx] || "").trim();
-      let timeVal = String(rowData[item.tIdx] || "00:00").trim();
-      
-      const cleanCond = (condVal === "-" || condVal === "" || condVal === "None") ? "None" : condVal;
-      
-      if (timeVal.includes(':')) {
-        const parts = timeVal.split(':');
-        timeVal = parts[0].padStart(2, '0') + ":" + parts[1].padStart(2, '0');
-      }
-
-      setValById(item.condId, cleanCond);
-      // ฟังก์ชันนี้ต้องมีอยู่ใน script เพื่อแยก HH:mm ลงช่องกด
-      if (typeof mapTimeToPickerManual === "function") {
-        mapTimeToPickerManual(item.prefix, timeVal);
-      }
-    });
-
-    // 3. Recorded By (Index 40)
-    if (rowData[40]) {
-        setValById('recordedBy', rowData[40]);
-    }
-
-    // 4. Force Update UI (หน่วงเวลาเล็กน้อยให้ DOM จัดการตัวเอง)
-    setTimeout(() => {
-      if (typeof handleFixingChangeEdit === "function") handleFixingChangeEdit();
-      if (typeof handleStainTypeChange === "function") handleStainTypeChange();
-    }, 300);
-
-  } catch (e) { 
-    console.error("❌ fillEditForm Error:", e);
-  }
-}
-
-function mapTimeToPickerManual(hiddenId, timeStr) {
-    const hiddenEl = document.getElementById(hiddenId);
-    if (!hiddenEl) return;
-    
-    hiddenEl.value = timeStr;
-    const [hh, mm] = timeStr.split(':');
-    
-    // ค้นหา input hh และ mm ที่อยู่ในกลุ่มเดียวกัน
-    const container = hiddenEl.closest('.custom-time-picker');
-    if (container) {
-        const hhInput = container.querySelector('input[id$="_hh"]');
-        const mmInput = container.querySelector('input[id$="_mm"]');
-        if (hhInput) hhInput.value = hh;
-        if (mmInput) mmInput.value = mm;
-    }
-}
-
-function showTabErrorEdit(pane, customMsg) {
-    const tabId = pane.id;
-    const tabTrigger = document.querySelector(`[data-bs-target="#${tabId}"]`);
-    
-    if (tabTrigger) {
-        bootstrap.Tab.getOrCreateInstance(tabTrigger).show();
-    }
-
-    Swal.fire({
-        icon: 'warning',
-        title: 'ข้อมูลไม่ครบถ้วน',
-        text: customMsg || 'กรุณาตรวจสอบและเลือกข้อมูลให้ครบในหน้านี้',
-        confirmButtonColor: '#3085d6'
-    });
-}
-
-async function updateData() {
-    const form = document.getElementById('updateForm');
-    
-    // --- 0. เตรียมข้อมูลเวลาจาก Custom Picker ---
-    const pickerPrefixes = ['replace_meth', 'replace_undiluted', 'replace_diluted1', 'replace_diluted2'];
-    pickerPrefixes.forEach(prefix => {
-        const hh = document.getElementById(`${prefix}_hh`)?.value || "00";
-        const mm = document.getElementById(`${prefix}_mm`)?.value || "00";
-        const hiddenInput = document.getElementById(`${prefix}_val`);
-        if (hiddenInput) {
-            hiddenInput.value = `${hh.padStart(2, '0')}:${mm.padStart(2, '0')}`;
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({ title: 'กำลังลบ...', didOpen: () => Swal.showLoading() });
+            google.script.run
+                .withSuccessHandler(response => {
+                    Swal.fire({ icon: 'success', title: 'ลบสำเร็จ', timer: 1500 });
+                    bootstrap.Modal.getInstance(document.getElementById('detailModal'))?.hide();
+                    initStainTable(); 
+                })
+                .withFailureHandler(err => Swal.fire('Error', err, 'error'))
+                .deleteStainRecord(rowIndex);
         }
     });
-
-    const formData = new FormData(form);
-    const data = Object.fromEntries(formData.entries());
-    const stainType = data.stainType || "";
-    const fixingVal = data.fixing || "";
-
-    // --- 1. Unified Validation Loop ---
-    const allInputs = form.querySelectorAll('select:not([disabled]), input:not([disabled]):not([type="hidden"]):not([type="button"])');
-    
-    for (let el of allInputs) {
-        const val = el.value ? el.value.trim() : "";
-        
-        // ข้ามฟิลด์ที่ไม่ต้องตรวจสอบตาม Logic
-        if (el.id.includes('2') && !stainType.includes("Double")) continue;
-        if (el.id.includes('meth') && fixingVal === "Stain") continue;
-        if (val === "Loading...") continue;
-
-        // ตรวจสอบค่าว่าง
-        if (!val || val === "" || val.includes('--')) {
-            const label = el.closest('.mb-3')?.querySelector('.form-label')?.innerText 
-                          || el.closest('div')?.querySelector('.form-label')?.innerText 
-                          || "ข้อมูลบางส่วน";
-
-            const pane = el.closest('.tab-pane');
-            if (pane) {
-                showTabErrorEdit(pane, `กรุณาระบุ: ${label}`);
-            } else {
-                Swal.fire({ icon: 'warning', title: 'ข้อมูลไม่ครบถ้วน', text: `กรุณากรอกหรือเลือก: ${label}` });
-                el.focus();
-            }
-            return; 
-        }
-
-        // ตรวจสอบกรณีเลือก Condition แต่ลืมแก้เวลา (ห้ามเป็น 00:00)
-        if (el.name && el.name.endsWith('_val')) {
-            const condName = el.name.replace('_val', '_cond');
-            const condSelect = form.querySelector(`select[name="${condName}"]`);
-            if (condSelect && condSelect.value !== "None" && condSelect.value !== "" && val === "00:00") {
-                const pane = el.closest('.tab-pane');
-                showTabErrorEdit(pane, "กรุณาระบุเวลาให้ถูกต้อง (ห้ามเป็น 00:00 เมื่อมีการตั้งเงื่อนไข)");
-                return;
-            }
-        }
-    }
-
-    // --- 2. Data Cleanup (ทำให้ข้อมูลสะอาดก่อนส่งเข้า Sheet) ---
-    if (!stainType.includes("Double")) {
-        data.stain2_ratio = "-"; data.dilutedStain2_time = "-";
-        data.add_diluted2_time = "-"; data.replace_diluted2_cond = "None";
-        data.replace_diluted2_val = "00:00";
-    }
-    if (fixingVal === "Stain") {
-        data.methanolPrefix = "-"; data.methanolFix = "-";
-        data.add_meth_time = "-"; data.add_meth_slides = "-";
-        data.replace_meth_cond = "None"; data.replace_meth_val = "00:00";
-    } else if (fixingVal === "Methanol") {
-        data.stainPrefix = "-";
-    }
-
-    // --- 3. ยืนยันและส่งข้อมูล (GitHub Fetch Version) ---
-    const confirm = await Swal.fire({
-        title: 'ยืนยันการแก้ไข?',
-        text: "คุณต้องการบันทึกการเปลี่ยนแปลงใช่หรือไม่?",
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        confirmButtonText: 'บันทึก'
-    });
-
-    if (confirm.isConfirmed) {
-        Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-        
-        try {
-            // 🚩 เปลี่ยนจาก google.script.run เป็น callAPI
-            const response = await callAPI('updateStainRecord', {
-                rowIndex: data.rowIndex,
-                payload: data
-            });
-
-            if (response.success) {
-                await Swal.fire({ icon: 'success', title: 'สำเร็จ!', text: 'แก้ไขข้อมูลเรียบร้อยแล้ว', timer: 1500, showConfirmButton: false });
-
-                // 1. ปิด Modal
-                const editModal = bootstrap.Modal.getInstance(document.getElementById('editModal'));
-                if (editModal) editModal.hide();
-
-                // 2. รีเฟรชตารางและเปิด Detail ดูผลลัพธ์
-                if (typeof initStainTable === "function") {
-                    initStainTable(); // รีโหลดตารางใหม่
-                    
-                    // หน่วงเวลาเปิด Detail เล็กน้อยเพื่อให้ข้อมูลใหม่โหลดเข้า Memory
-                    setTimeout(() => {
-                        if (typeof openRecordDetail === "function") {
-                            openRecordDetail(data.rowIndex);
-                        }
-                    }, 500);
-                }
-            } else {
-                Swal.fire('เกิดข้อผิดพลาด', response.message || 'บันทึกไม่สำเร็จ', 'error');
-            }
-        } catch (err) {
-            console.error("Update Error:", err);
-            Swal.fire('Error', 'ไม่สามารถเชื่อมต่อกับฐานข้อมูลได้', 'error');
-        }
-    }
-}
-
-function mapTimeToPickerManual(valInputId, timeStr) {
-  // ตัดคำว่า '_val' ออกเพื่อให้ได้ prefix ที่ถูกต้อง (เช่น replace_meth_val -> replace_meth)
-  const prefix = valInputId.replace('_val', '');
-  
-  const hhEl = document.getElementById(prefix + '_hh');
-  const mmEl = document.getElementById(prefix + '_mm');
-  const valEl = document.getElementById(valInputId);
-  
-  if (timeStr && timeStr.includes(':')) {
-    let [hh, mm] = timeStr.split(':');
-    // เติมเลข 0 ข้างหน้าให้ครบ 2 หลัก
-    hh = hh.trim().padStart(2, '0');
-    mm = mm.trim().padStart(2, '0');
-    
-    if (hhEl) hhEl.value = hh;
-    if (mmEl) mmEl.value = mm;
-    if (valEl) valEl.value = hh + ":" + mm; 
-  }
-}
-
-
-function updateReplacementUI(selectElement, shouldReset = true) {
-  const row = selectElement.closest('.row');
-  if (!row) return;
-  const container = row.querySelector('.custom-time-picker');
-  if (!container) return;
-
-  // ตรวจสอบค่า 'None' อย่างเข้มงวด
-  const isNoneValue = (!selectElement.value || selectElement.value === "" || selectElement.value === "None");
-  const buttons = container.querySelectorAll('button');
-  const inputs = container.querySelectorAll('input');
-
-  buttons.forEach(btn => btn.disabled = isNoneValue);
-
-  inputs.forEach(input => {
-    input.disabled = isNoneValue;
-    input.style.backgroundColor = isNoneValue ? "#e9ecef" : "#ffffff";
-    
-    // Reset เฉพาะเมื่อสั่ง และต้องเป็นค่า None เท่านั้น
-    if (isNoneValue && shouldReset) {
-      if (input.type === 'hidden') input.value = "00:00";
-      else if (input.classList.contains('form-control')) input.value = "00";
-    }
-  });
 }
 
 function editRecord(rowIndex) {
@@ -1309,11 +833,548 @@ function editRecord(rowIndex) {
   });
 }
 
+
+
+function handleFixingChangeEdit() {
+  const val = document.getElementById('fixing')?.value;
+  const mPreContainer = document.getElementById('edit-container-methanol-prefix');
+  const mFixContainer = document.getElementById('edit-container-methanol-fix');
+  const sPreContainer = document.getElementById('edit-container-stain-prefix');
+
+  const mPre = mPreContainer?.querySelector('select');
+  const mFix = mFixContainer?.querySelector('select');
+  const sPre = sPreContainer?.querySelector('select');
+
+  // อ้างอิงปุ่ม Tab ทั้งสองส่วน
+  const addMethTabBtn = document.querySelector('[data-bs-target="#add-meth"]');
+  const repMethTabBtn = document.querySelector('[data-bs-target="#rep-meth"]');
+
+  if (val === 'Methanol') {
+    // 1. แสดง Container และ Enable ฟิลด์
+    if (mPreContainer) mPreContainer.style.display = 'block';
+    if (mFixContainer) mFixContainer.style.display = 'block';
+    if (sPreContainer) sPreContainer.style.display = 'none';
+    
+    if (mPre) mPre.disabled = false;
+    if (mFix) mFix.disabled = false;
+    if (sPre) sPre.disabled = true;
+
+    // ✨ 2. แสดงปุ่ม Tab Methanol กลับมา (จุดที่ต้องเพิ่ม)
+    if (addMethTabBtn) addMethTabBtn.parentElement.style.display = 'block';
+    if (repMethTabBtn) repMethTabBtn.parentElement.style.display = 'block';
+
+    // 3. ดีดหน้า Tab กลับมาที่ Methanol เพื่อให้ User เริ่มกรอก
+    if (addMethTabBtn) bootstrap.Tab.getOrCreateInstance(addMethTabBtn).show();
+    if (repMethTabBtn) bootstrap.Tab.getOrCreateInstance(repMethTabBtn).show();
+
+  } else if (val === 'Stain') {
+    if (mPreContainer) mPreContainer.style.display = 'none';
+    if (mFixContainer) mFixContainer.style.display = 'none';
+    if (sPreContainer) sPreContainer.style.display = 'block';
+
+    if (mPre) mPre.disabled = true;
+    if (mFix) mFix.disabled = true;
+    if (sPre) sPre.disabled = false;
+
+    // ซ่อนปุ่ม Tab Methanol
+    if (addMethTabBtn) addMethTabBtn.parentElement.style.display = 'none';
+    if (repMethTabBtn) repMethTabBtn.parentElement.style.display = 'none';
+
+    // ดีดไปหน้าอื่น
+    const addUndilutedTrigger = document.querySelector('[data-bs-target="#add-undiluted"]');
+    if (addUndilutedTrigger) bootstrap.Tab.getOrCreateInstance(addUndilutedTrigger).show();
+    const repUndilutedTrigger = document.querySelector('[data-bs-target="#rep-undiluted"]');
+    if (repUndilutedTrigger) bootstrap.Tab.getOrCreateInstance(repUndilutedTrigger).show();
+
+  } else {
+    // Default แสดงทั้งหมด
+    [mPreContainer, mFixContainer, sPreContainer].forEach(el => { if(el) el.style.display = 'block'; });
+    [mPre, mFix, sPre].forEach(el => { if(el) el.disabled = false; });
+    
+    // แสดง Tab ทั้งหมดกลับมา
+    if (addMethTabBtn) addMethTabBtn.parentElement.style.display = 'block';
+    if (repMethTabBtn) repMethTabBtn.parentElement.style.display = 'block';
+  }
+}
+
+function handleStainTypeChange() {
+  const stainTypeSelect = document.getElementById('stainType');
+  if (!stainTypeSelect) return;
+  const isDouble = (stainTypeSelect.value.includes("Double"));
+
+  const stain2Fields = ['stain2_ratio', 'dilutedStain2_time', 'add_diluted2_time'];
+  stain2Fields.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      const parent = el.closest('[class*="col-"]');
+      if (parent) parent.style.display = isDouble ? 'block' : 'none';
+      
+      // ✨ เพิ่มการ disabled เพื่อให้ Validation ข้ามฟิลด์นี้ถ้าไม่ใช่ Double
+      el.disabled = !isDouble;
+
+      if (!isDouble) {
+        el.selectedIndex = 0; 
+      }
+    }
+  });
+
+  // ส่วนของ Tab และ Replacement
+  const tabAdd2 = document.getElementById('tab-stain2-addition');
+  const tabRep2 = document.getElementById('tab-replace-stain2');
+  
+  if (tabAdd2) tabAdd2.style.setProperty('display', isDouble ? 'block' : 'none', 'important');
+  if (tabRep2) tabRep2.style.setProperty('display', isDouble ? 'block' : 'none', 'important');
+
+  // ✨ จัดการฟิลด์ Replacement ของ Stain 2
+  const repS2Cond = document.getElementById('replace_diluted2_cond');
+  if (repS2Cond) {
+    repS2Cond.disabled = !isDouble;
+    if (!isDouble) {
+        repS2Cond.selectedIndex = 0;
+        if (typeof mapTimeToPickerManual === "function") {
+            mapTimeToPickerManual('replace_diluted2_val', '00:00');
+        }
+    }
+  }
+}
+
+function validateAlphanumeric(input) {
+  input.value = input.value.replace(/[^A-Za-z0-9\s\.\(\)\:]/g, '');
+}
+
+function validateAmtWash1(input) {
+  let val = parseInt(input.value);
+  if (val > 23) input.value = 23;
+}
+
+function validateAmtWash2(input) {
+  let val = parseInt(input.value);
+  if (val > 62) input.value = 62;
+}
+
+// 1. ประกาศตัวแปรสำหรับเก็บ Timer ไว้ด้านบนสุดของ script
+let stepTimer = null;
+
+function stepTime(btn, type, amount) {
+  // ฟังก์ชันภายในสำหรับคำนวณค่า (แยกออกมาเพื่อให้เรียกซ้ำได้)
+  const performStep = () => {
+    const container = btn.closest('.custom-time-picker');
+    const hhInput = container.querySelector('input[id$="_hh"]');
+    const mmInput = container.querySelector('input[id$="_mm"]');
+    const hiddenInput = container.querySelector('input[type="hidden"]');
+
+    if (type === 'HH') {
+      let val = parseInt(hhInput.value) + amount;
+      if (val < 0) val = 24; else if (val > 24) val = 0;
+      hhInput.value = val.toString().padStart(2, '0');
+
+      if (val === 24) {
+        mmInput.value = "00";
+      }
+    } else {
+      let val = parseInt(mmInput.value) + amount;
+      if (parseInt(hhInput.value) === 24) {
+        val = 0;
+      } else {
+        if (val < 0) val = 59; else if (val > 59) val = 0;
+      }
+      mmInput.value = val.toString().padStart(2, '0');
+    }
+    hiddenInput.value = hhInput.value + ":" + mmInput.value;
+  };
+
+  // 2. เมื่อกดเมาส์ลง (mousedown)
+  const startStepping = () => {
+    performStep(); // ทำงานทันที 1 ครั้ง
+    clearInterval(stepTimer);
+    // ตั้งหน่วงเวลา 500ms ก่อนจะเริ่มวิ่งรัวๆ ทุก 100ms
+    stepTimer = setTimeout(() => {
+        stepTimer = setInterval(performStep, 100);
+    }, 500);
+  };
+
+  // 3. เมื่อปล่อยเมาส์หรือเมาส์หลุดจากปุ่ม
+  const stopStepping = () => {
+    clearTimeout(stepTimer);
+    clearInterval(stepTimer);
+    btn.removeEventListener('mouseup', stopStepping);
+    btn.removeEventListener('mouseleave', stopStepping);
+  };
+
+  // ผูก Event การกดค้าง
+  btn.addEventListener('mouseup', stopStepping);
+  btn.addEventListener('mouseleave', stopStepping);
+  startStepping();
+}
+
+function initEditReplacementLogic() {
+  document.querySelectorAll('#editModal select[name$="_cond"]').forEach(select => {
+    updateReplacementUI(select);
+    select.addEventListener('change', (e) => updateReplacementUI(e.target));
+  });
+}
+
+function fetchOptionsForEdit() {
+  return new Promise((resolve, reject) => {
+    google.script.run
+      .withFailureHandler(err => reject(err))
+      .withSuccessHandler(options => {
+        const selects = document.querySelectorAll('#updateForm .form-select[data-source]');
+        selects.forEach(select => {
+          const source = select.getAttribute('data-source').trim();
+          if (options[source]) {
+            let html = '<option value="">-- เลือก --</option>';
+            options[source].forEach(val => {
+              if (val !== null && val !== "") html += `<option value="${val}">${val}</option>`;
+            });
+            select.innerHTML = html;
+          }
+        });
+        resolve();
+      })
+      .getMasterSettings();
+  });
+}
+function fillEditFormStepByStep(rowData, rowIndex) {
+  // ฟังก์ชันช่วยเซตค่าที่ฉลาดขึ้น
+  const setValById = (id, value) => {
+    const el = document.getElementById(id);
+    if (!el) {
+      console.warn(`⚠️ Element ID [${id}] not found.`);
+      return;
+    }
+
+    const val = (value === undefined || value === null) ? '' : String(value).trim();
+
+    // ถ้าเป็น Select และค่ายังไม่โหลด ให้สร้าง Option ชั่วคราวไว้รอ
+    if (el.tagName === 'SELECT' && val !== '' && val !== '-') {
+      const exists = Array.from(el.options).some(opt => opt.value === val);
+      if (!exists) {
+        const tempOpt = new Option(val, val, true, true);
+        el.add(tempOpt);
+      }
+    }
+
+    el.value = val;
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  };
+
+  try {
+    // 0. ใส่ข้อมูลพื้นฐาน
+    setValById('rowIndex', rowIndex);
+    setValById('id', rowData[0]);
+
+    // 1. Mapping ข้อมูลดัชนี 1-31 (ข้าม 0 เพราะเป็น ID)
+    const fields = [
+      'id', 'site', 'sn', 'prefixing', 'rinsing', 'amtWash1', 'amtWash2', 'extTime', 
+      'prepMethod', 'mixed', 'stainType', 'fixing', 'bufferType', 'fan1', 'fan2', 
+      'methanolPrefix', 'methanolFix', 'stainPrefix', 'undilutedStain1_time', 
+      'stain1_ratio', 'dilutedStain1_time', 'stain2_ratio', 'dilutedStain2_time', 
+      'rinseCount', 'dryTime', 'heaterStatus', 'add_meth_time', 'add_undiluted_time', 
+      'add_diluted_time', 'add_diluted2_time', 'add_meth_slides', 'add_undiluted_slides',
+      'recordedBy' // อย่าลืมช่องผู้บันทึก (สมมติว่าเป็นดัชนีสุดท้ายหรือดัชนี 40 ตาม Sheet)
+    ];
+    
+    fields.forEach((id, idx) => {
+      if (idx < rowData.length) {
+        setValById(id, rowData[idx]);
+      }
+    });
+
+    // 2. Mapping Stain Replacement Setting (ดัชนี 32-39)
+    const replacementConfigs = [
+      { condId: 'replace_meth_cond',       prefix: 'replace_meth_val',       cIdx: 32, tIdx: 33 },
+      { condId: 'replace_undiluted_cond', prefix: 'replace_undiluted_val', cIdx: 34, tIdx: 35 },
+      { condId: 'replace_diluted1_cond',  prefix: 'replace_diluted1_val',  cIdx: 36, tIdx: 37 },
+      { condId: 'replace_diluted2_cond',  prefix: 'replace_diluted2_val',  cIdx: 38, tIdx: 39 }
+    ];
+
+    replacementConfigs.forEach(item => {
+      const condVal = String(rowData[item.cIdx] || "").trim();
+      let timeVal = String(rowData[item.tIdx] || "00:00").trim();
+      
+      const cleanCond = (condVal === "-" || condVal === "" || condVal === "None" || condVal === "null") ? "None" : condVal;
+      
+      if (timeVal.includes(':')) {
+        const parts = timeVal.split(':');
+        timeVal = parts[0].padStart(2, '0') + ":" + parts[1].padStart(2, '0');
+      } else {
+        timeVal = "00:00";
+      }
+
+      setValById(item.condId, cleanCond);
+      if (typeof mapTimeToPickerManual === "function") {
+        mapTimeToPickerManual(item.prefix, timeVal);
+      }
+    });
+
+    // 3. จัดการเรื่อง "Recorded By" เพิ่มเติม (จากภาพ image_61a382.png คือดัชนีสุดท้ายใน Sheet)
+    // ถ้า Recorded By อยู่คอลัมน์สุดท้าย (ดัชนี 40) ให้ใส่ค่าตรงนี้
+    if (rowData[40]) {
+        setValById('recordedBy', rowData[40]);
+    }
+
+    // 4. อัปเดต UI
+    setTimeout(() => {
+      replacementConfigs.forEach(item => {
+        const selectEl = document.getElementById(item.condId);
+        if (selectEl && typeof updateReplacementUI === "function") {
+          updateReplacementUI(selectEl, false);
+        }
+      });
+
+      if (typeof handleFixingChangeEdit === "function") handleFixingChangeEdit(false);
+      if (typeof handleStainTypeChange === "function") handleStainTypeChange(false);
+    }, 200);
+
+  } catch (e) { 
+    console.error("❌ Error in fillEditFormStepByStep:", e);
+  }
+}
+
+/**
+ * ฟังก์ชันช่วยเหลือ: สลับ Tab และแจ้งเตือน Error
+ */
+function showTabErrorEdit(pane, customMsg) {
+    const tabId = pane.id;
+    const tabTrigger = document.querySelector(`[data-bs-target="#${tabId}"]`);
+    
+    if (tabTrigger) {
+        bootstrap.Tab.getOrCreateInstance(tabTrigger).show();
+    }
+
+    Swal.fire({
+        icon: 'warning',
+        title: 'ข้อมูลไม่ครบถ้วน',
+        text: customMsg || 'กรุณาตรวจสอบและเลือกข้อมูลให้ครบในหน้านี้',
+        confirmButtonColor: '#3085d6'
+    });
+}
+
+function updateData() {
+    const form = document.getElementById('updateForm');
+    
+    // --- 0. เตรียมข้อมูลเวลาจาก Custom Picker ---
+    const pickerPrefixes = ['replace_meth', 'replace_undiluted', 'replace_diluted1', 'replace_diluted2'];
+    pickerPrefixes.forEach(prefix => {
+        const hh = document.getElementById(`${prefix}_hh`)?.value || "00";
+        const mm = document.getElementById(`${prefix}_mm`)?.value || "00";
+        const hiddenInput = document.getElementById(`${prefix}_val`);
+        if (hiddenInput) {
+            hiddenInput.value = `${hh.padStart(2, '0')}:${mm.padStart(2, '0')}`;
+        }
+    });
+
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
+    const stainType = data.stainType || "";
+    const fixingVal = data.fixing || "";
+
+    // --- 1. ตรวจสอบทุกลูกเช็ค (Unified Loop) ---
+    // ค้นหาทั้ง input และ select ที่ไม่ถูก disabled
+    const allInputs = form.querySelectorAll('select:not([disabled]), input:not([disabled]):not([type="hidden"]):not([type="button"])');
+    
+    for (let el of allInputs) {
+        const val = el.value ? el.value.trim() : "";
+        
+        // ✨ กรองเงื่อนไขการตรวจสอบ: 
+        // ถ้าเป็นฟิลด์ Stain 2 แต่ไม่ใช่ Double Stain ให้ข้ามไป
+        if (el.id.includes('2') && !stainType.includes("Double")) continue;
+        // ถ้าเป็นฟิลด์ Methanol แต่เลือก Fixing = Stain ให้ข้ามไป
+        if (el.id.includes('meth') && fixingVal === "Stain") continue;
+        if (val === "Loading...") continue;
+
+        // 🛑 ตรวจสอบค่าว่าง หรือ "-- เลือก --"
+        if (!val || val === "" || val.includes('--')) {
+            
+            // ดึงชื่อ Label (ลองหาจากหลายแหล่งเพื่อให้ครอบคลุมทุก Section)
+            const label = el.closest('.mb-3')?.querySelector('.form-label')?.innerText 
+                          || el.closest('div')?.querySelector('.form-label')?.innerText 
+                          || "ข้อมูลบางส่วน";
+
+            // เช็คว่าฟิลด์นี้อยู่ใน Tab หรือไม่
+            const pane = el.closest('.tab-pane');
+            if (pane) {
+                showTabErrorEdit(pane, `กรุณาระบุ: ${label}`);
+            } else {
+                // ถ้าอยู่นอก Tab (เช่น Stain Setting / Service Setting)
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'ข้อมูลไม่ครบถ้วน',
+                    text: `กรุณากรอกหรือเลือก: ${label}`,
+                    confirmButtonColor: '#3085d6'
+                });
+                el.focus();
+            }
+            return; // หยุดทันทีเมื่อเจอจุดผิด
+        }
+
+        // 🛑 ตรวจสอบกรณีเลือก Condition แต่ลืมแก้เวลา (00:00)
+        if (el.name && el.name.endsWith('_val')) {
+            const condName = el.name.replace('_val', '_cond');
+            const condSelect = form.querySelector(`select[name="${condName}"]`);
+            if (condSelect && condSelect.value !== "None" && condSelect.value !== "" && val === "00:00") {
+                const pane = el.closest('.tab-pane');
+                showTabErrorEdit(pane, "กรุณาระบุเวลาให้ถูกต้อง (ห้ามเป็น 00:00 เมื่อมีการตั้งเงื่อนไข)");
+                return;
+            }
+        }
+    }
+
+    // --- 2. ตรวจสอบข้อมูลภายใน Tab Panes (Loop เจาะลึก) ---
+    const tabPanes = form.querySelectorAll('.tab-pane');
+    for (let pane of tabPanes) {
+        const isStain2Tab = pane.id.includes('2'); 
+        const isMethTab = pane.id.includes('meth'); 
+
+        // ข้าม Tab ที่ไม่เกี่ยวข้องกับเงื่อนไขปัจจุบัน
+        if (isStain2Tab && !stainType.includes("Double")) continue; 
+        if (isMethTab && fixingVal === "Stain") continue; 
+
+        const inputs = pane.querySelectorAll('select, input:not([type="button"]):not([type="submit"])');
+        for (let input of inputs) {
+            if (!input.disabled) {
+                const value = input.value ? input.value.trim() : "";
+                
+                // ตรวจสอบ Replacement Condition และเวลา (ห้ามเป็น 00:00 ถ้าเลือกเงื่อนไขอื่น)
+                if (input.name.endsWith('_val')) {
+                    const condName = input.name.replace('_val', '_cond');
+                    const condSelect = form.querySelector(`select[name="${condName}"]`);
+                    if (condSelect && condSelect.value !== "None" && condSelect.value !== "") {
+                        if (!value || value === "00:00") {
+                            showTabErrorEdit(pane, "กรุณาระบุเวลาให้ถูกต้อง (ห้ามเป็น 00:00 เมื่อมีการตั้งเงื่อนไข)");
+                            return; 
+                        }
+                    }
+                } 
+                // ตรวจสอบ Dropdown ปกติใน Tab
+                else if (!value || value === "" || value.includes("--")) {
+                    showTabErrorEdit(pane); 
+                    return;
+                }
+            }
+        }
+    }
+
+    // --- 3. Data Cleanup ก่อนส่ง (คงเดิมของคุณไว้) ---
+    if (!stainType.includes("Double")) {
+        data.stain2_ratio = "-"; data.dilutedStain2_time = "-";
+        data.add_diluted2_time = "-"; data.replace_diluted2_cond = "None";
+        data.replace_diluted2_val = "00:00";
+    }
+    if (fixingVal === "Stain") {
+        data.methanolPrefix = "-"; data.methanolFix = "-";
+        data.add_meth_time = "-"; data.add_meth_slides = "-";
+        data.replace_meth_cond = "None"; data.replace_meth_val = "00:00";
+    } else if (fixingVal === "Methanol") {
+        data.stainPrefix = "-";
+    }
+
+    // --- 4. ยืนยันการบันทึกแก้ไข ---
+    Swal.fire({
+        title: 'ยืนยันการแก้ไข?',
+        text: "คุณต้องการบันทึกการเปลี่ยนแปลงใช่หรือไม่?",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        confirmButtonText: 'บันทึก',
+        cancelButtonText: 'ยกเลิก'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            
+            // --- 4. ภายในส่วน google.script.run ของฟังก์ชัน updateData ---
+            google.script.run
+                .withSuccessHandler(function(response) {
+                    if (response === "Success") {
+                        Swal.fire({ 
+                            icon: 'success', 
+                            title: 'สำเร็จ!', 
+                            text: 'แก้ไขข้อมูลเรียบร้อยแล้ว', 
+                            timer: 1500, 
+                            showConfirmButton: false 
+                        });
+
+                        // 1. ปิด Modal แก้ไข
+                        const editModalEl = document.getElementById('editModal');
+                        const editModal = bootstrap.Modal.getInstance(editModalEl);
+                        if (editModal) editModal.hide();
+
+                        // 2. รีเฟรชตารางหลัก (DataTable)
+                        if (typeof initStainTable === "function") {
+                            // ใส่ Callback เพื่อให้มั่นใจว่าตารางโหลดเสร็จก่อนค่อยเปิด Detail
+                            initStainTable(function() { 
+                                // ✨ 3. เรียกฟังก์ชันเปิดรายละเอียดซ้ำอีกครั้ง โดยใช้ rowIndex เดิม
+                                // เพื่อให้ตาราง Detail แสดงข้อมูลที่เพิ่งอัปเดตไป
+                                setTimeout(() => {
+                                    if (typeof openRecordDetail === "function") {
+                                        openRecordDetail(data.rowIndex);
+                                    }
+                                }, 300); // หน่วงเวลานิดเดียวเพื่อให้ Modal ตัวเก่าเคลียร์เสร็จ
+                            });
+                        }
+
+                    } else {
+                        Swal.fire('เกิดข้อผิดพลาด', response, 'error');
+                    }
+                })
+                .withFailureHandler(err => Swal.fire('Error', err.toString(), 'error'))
+                .updateStainRecord(data, data.rowIndex);
+        }
+    });
+}
+
+function mapTimeToPickerManual(valInputId, timeStr) {
+  // ตัดคำว่า '_val' ออกเพื่อให้ได้ prefix ที่ถูกต้อง (เช่น replace_meth_val -> replace_meth)
+  const prefix = valInputId.replace('_val', '');
+  
+  const hhEl = document.getElementById(prefix + '_hh');
+  const mmEl = document.getElementById(prefix + '_mm');
+  const valEl = document.getElementById(valInputId);
+  
+  if (timeStr && timeStr.includes(':')) {
+    let [hh, mm] = timeStr.split(':');
+    // เติมเลข 0 ข้างหน้าให้ครบ 2 หลัก
+    hh = hh.trim().padStart(2, '0');
+    mm = mm.trim().padStart(2, '0');
+    
+    if (hhEl) hhEl.value = hh;
+    if (mmEl) mmEl.value = mm;
+    if (valEl) valEl.value = hh + ":" + mm; 
+  }
+}
+
+
+function updateReplacementUI(selectElement, shouldReset = true) {
+  const row = selectElement.closest('.row');
+  if (!row) return;
+  const container = row.querySelector('.custom-time-picker');
+  if (!container) return;
+
+  // ตรวจสอบค่า 'None' อย่างเข้มงวด
+  const isNoneValue = (!selectElement.value || selectElement.value === "" || selectElement.value === "None");
+  const buttons = container.querySelectorAll('button');
+  const inputs = container.querySelectorAll('input');
+
+  buttons.forEach(btn => btn.disabled = isNoneValue);
+
+  inputs.forEach(input => {
+    input.disabled = isNoneValue;
+    input.style.backgroundColor = isNoneValue ? "#e9ecef" : "#ffffff";
+    
+    // Reset เฉพาะเมื่อสั่ง และต้องเป็นค่า None เท่านั้น
+    if (isNoneValue && shouldReset) {
+      if (input.type === 'hidden') input.value = "00:00";
+      else if (input.classList.contains('form-control')) input.value = "00";
+    }
+  });
+}
+
 async function downloadPDF() {
-    // 1. ตรวจสอบ Library ทั้งสองตัว
+    // แก้ปัญหา Destructuring Error
     const jsPDFLib = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
-    if (!jsPDFLib || typeof html2canvas === 'undefined') {
-        Swal.fire('Error', 'ไม่พบ Library (jsPDF/html2canvas) กรุณาตรวจสอบการเชื่อมต่อ', 'error');
+    if (!jsPDFLib) {
+        Swal.fire('Error', 'ไม่สามารถโหลด Library สำหรับสร้าง PDF ได้', 'error');
         return;
     }
 
@@ -1322,61 +1383,64 @@ async function downloadPDF() {
 
     Swal.fire({
         title: 'กำลังสร้างรายงาน PDF...',
-        text: 'กำลังประมวลผลตารางและภาษาไทย',
+        text: 'กำลังจัดระเบียบตารางและภาษาไทย',
         allowOutsideClick: false,
         didOpen: () => { Swal.showLoading(); }
     });
 
     try {
-        // 2. สร้าง Clone และจัดการ Style เพื่อความคมชัด
+        // 1. สร้าง Clone เพื่อไม่ให้กระทบหน้าจอผู้ใช้
         const clone = element.cloneNode(true);
-        const extras = clone.querySelectorAll('button, .modal-footer, .btn-close, .no-print');
+        
+        // ลบปุ่มและส่วนเกินที่ไม่ต้องการใน PDF
+        const extras = clone.querySelectorAll('button, .modal-footer, .btn-close');
         extras.forEach(el => el.remove());
 
-        // ปรับแต่งตารางใน Clone
+// 2. ล็อคเส้นตาราง (ปรับปรุงเพื่อแก้ปัญหาเส้นคาดข้อความ Rowspan)
         const tables = clone.querySelectorAll('table');
         tables.forEach(table => {
             table.style.width = '100%';
-            table.style.borderCollapse = 'collapse';
-            table.style.fontFamily = "'Sarabun', sans-serif"; // บังคับฟอนต์ถ้ามี
+            table.style.borderCollapse = 'collapse'; // ใช้ collapse เพื่อให้เส้นเชื่อมกันเป๊ะ
+            table.style.backgroundColor = '#ffffff';
             
             const cells = table.querySelectorAll('th, td');
             cells.forEach(cell => {
-                cell.style.border = '0.5px solid #333';
-                cell.style.padding = '8px 6px';
+                // บังคับสไตล์พื้นฐาน
+                cell.style.border = '0.5px solid #000'; // ใช้เส้นบางลงเล็กน้อยเพื่อให้ดูคมชัด
+                cell.style.padding = '6px';
                 cell.style.backgroundColor = '#ffffff';
-                cell.style.color = '#000000'; // บังคับสีตัวอักษรให้เข้ม
-                
+                cell.style.verticalAlign = 'middle'; // จัดข้อความให้อยู่กึ่งกลางแนวตั้ง
+
+                // --- แก้ไขปัญหาเส้นคาด Rowspan ---
+                // เช็คว่าเซลล์นี้เป็น Rowspan หรือไม่
                 if (cell.rowSpan > 1) {
-                    cell.style.zIndex = "10";
+                    cell.style.zIndex = "10"; // ดันเซลล์ที่มีข้อความขึ้นมาอยู่ข้างบน
                     cell.style.position = "relative";
+                    cell.style.backgroundColor = "#ffffff"; // บังคับพื้นหลังสีขาวเพื่อบังเส้นหลังเซลล์
                 }
             });
         });
 
-        // ซ่อน Clone ในตำแหน่งที่ปลอดภัย
-        Object.assign(clone.style, {
-            position: "fixed",
-            top: "0",
-            left: "-9999px",
-            width: "1000px", // เพิ่มความกว้างเพื่อให้ Render ตารางไม่เบียด
-            display: "block"
-        });
+        // ซ่อน Clone ไว้ในที่ที่มองไม่เห็นก่อนถ่ายภาพ
+        clone.style.position = "fixed";
+        clone.style.top = "0";
+        clone.style.left = "-9999px";
+        clone.style.width = "800px"; // กำหนดความกว้างมาตรฐาน
         document.body.appendChild(clone);
 
-        // 3. แปลงเป็น Canvas (เพิ่ม logging: false เพื่อประสิทธิภาพ)
+        // 3. แปลง HTML เป็น Canvas
         const canvas = await html2canvas(clone, {
-            scale: 2, // เพิ่มเป็น 2 เพื่อความชัดระดับ High-Def
+            scale: 1.5, // ลดลงจาก 2 เล็กน้อย (1.5 ยังชัดมากสำหรับ A4)
             useCORS: true,
-            allowTaint: true,
-            backgroundColor: '#ffffff',
-            letterRendering: true // ช่วยเรื่องการจัดวางช่องว่างตัวอักษร
+            logging: false,
+            backgroundColor: '#ffffff'
         });
 
-        // แปลงเป็น JPEG (Balanced Quality)
-        const imgData = canvas.toDataURL('image/jpeg', 0.85); 
+        // --- จุดเปลี่ยนสำคัญ: ใช้ JPEG และใส่ค่า Quality ---
+        // 0.7 คือจุดที่สมดุลที่สุดระหว่างความชัดของตัวอักษรและขนาดไฟล์
+        const imgData = canvas.toDataURL('image/jpeg', 0.7); 
 
-        // 4. สร้าง PDF A4
+        // สร้าง PDF พร้อมเปิดระบบ Compress
         const pdf = new jsPDFLib({
             orientation: 'p',
             unit: 'mm',
@@ -1384,36 +1448,38 @@ async function downloadPDF() {
             compress: true 
         });
 
+        
+
+        // 4. คำนวณขนาดภาพให้พอดี (ใช้ Logic เดิมของคุณ)
         const pageWidth = pdf.internal.pageSize.getWidth();
         const pageHeight = pdf.internal.pageSize.getHeight();
-        const margin = 15;
+        const margin = 10;
         const maxWidth = pageWidth - (margin * 2);
+        const maxHeight = pageHeight - (margin * 2);
 
         let finalWidth = maxWidth;
         let finalHeight = (canvas.height * maxWidth) / canvas.width;
 
-        // ถ้าสูงเกินหน้า ให้ย่อลงตามสัดส่วน
-        if (finalHeight > (pageHeight - (margin * 2))) {
-            finalHeight = pageHeight - (margin * 2);
-            finalWidth = (canvas.width * finalHeight) / canvas.height;
+        if (finalHeight > maxHeight) {
+            finalHeight = maxHeight;
+            finalWidth = (canvas.width * maxHeight) / canvas.height;
         }
 
         const xOffset = (pageWidth - finalWidth) / 2;
         
-        // ใส่รูปภาพลง PDF
-        pdf.addImage(imgData, 'JPEG', xOffset, margin, finalWidth, finalHeight, undefined, 'MEDIUM');
+        // --- เปลี่ยนฟอร์แมตใน addImage เป็น JPEG ---
+        pdf.addImage(imgData, 'JPEG', xOffset, margin, finalWidth, finalHeight, undefined, 'FAST');
 
-        // ชื่อไฟล์ (ดึงจาก Site Name ในตาราง)
-        const siteNameElement = element.querySelector('td:nth-child(2)');
-        const siteName = siteNameElement ? siteNameElement.innerText.split('\n')[0].trim() : 'Report';
-        
-        pdf.save(`Stain_Report_${siteName}_${new Date().toLocaleDateString('th-TH')}.pdf`);
+        // ดึงชื่อ Site มาตั้งชื่อไฟล์
+        const siteName = element.querySelector('td:nth-child(2)')?.innerText || 'Report';
+        pdf.save(`Stain_Report_${siteName.trim()}.pdf`);
 
+        // ทำความสะอาด
         document.body.removeChild(clone);
         Swal.close();
 
     } catch (error) {
-        console.error("PDF Error:", error);
-        Swal.fire('Error', 'เกิดข้อผิดพลาด: ' + error.message, 'error');
+        console.error("PDF Creation Error:", error);
+        Swal.fire('Error', 'เกิดข้อผิดพลาดในการสร้างไฟล์ PDF', 'error');
     }
 }

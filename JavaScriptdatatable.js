@@ -1,5 +1,5 @@
 // 1. ตั้งค่า URL ของ Google Apps Script Web App
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzQoIJWsoyZPEGqsiUSrMfxs2xaYNmS5POl6QAQyR303c42eoEaxTqzhYoofu_XZMJycQ/exec';
+const API_URL = "https://script.google.com/macros/s/AKfycbzQoIJWsoyZPEGqsiUSrMfxs2xaYNmS5POl6QAQyR303c42eoEaxTqzhYoofu_XZMJycQ/exec"; 
 
 
 $(document).ready(function() {

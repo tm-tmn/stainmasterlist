@@ -1,31 +1,39 @@
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzQoIJWsoyZPEGqsiUSrMfxs2xaYNmS5POl6QAQyR303c42eoEaxTqzhYoofu_XZMJycQ/exec"; // ก๊อปมาวางที่นี่
 
-async function doLogin() {
-    const user = document.getElementById('user').value;
-    const pass = document.getElementById('pass').value;
+async function handleLogin() {
+    const user = document.getElementById('username').value;
+    const pass = document.getElementById('password').value;
 
-    Swal.fire({ title: 'กำลังตรวจสอบ...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    if (!user || !pass) {
+        Swal.fire('กรุณากรอกข้อมูลให้ครบ');
+        return;
+    }
+
+    Swal.fire({ title: 'กำลังตรวจสอบ...', didOpen: () => Swal.showLoading() });
 
     try {
-        const response = await fetch(WEB_APP_URL, {
+        const response = await fetch(API_URL, {
             method: 'POST',
             body: JSON.stringify({
                 action: 'login',
-                data: { user, pass }
+                data: { user: user, pass: pass }
             })
         });
 
-        const res = await response.json();
-        
-        if (res.result.success) {
-            localStorage.setItem('currentUser', res.result.userName);
-            Swal.fire('สำเร็จ!', 'เข้าสู่ระบบแล้ว', 'success').then(() => {
+        const result = await response.json();
+
+        if (result.status === "Success") {
+            Swal.fire('สำเร็จ', 'ยินดีต้อนรับ ' + result.userName, 'success')
+            .then(() => {
+                // เก็บชื่อผู้ใช้ไว้ในเครื่อง และย้ายไปหน้าตาราง
+                localStorage.setItem('user', result.userName);
                 window.location.href = 'datatable.html';
             });
         } else {
-            Swal.fire('ผิดพลาด', 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', 'error');
+            Swal.fire('ล้มเหลว', 'รหัสผ่านไม่ถูกต้อง', 'error');
         }
-    } catch (err) {
-        Swal.fire('Error', 'ไม่สามารถเชื่อมต่อกับ Server ได้', 'error');
+    } catch (error) {
+        console.error(error);
+        Swal.fire('Error', 'ไม่สามารถเชื่อมต่อ Server ได้', 'error');
     }
 }

@@ -1,7 +1,7 @@
 // JavaScriptlogin.js
 
 // 🚩 นำ URL ที่ได้จากการ Deploy ใน Google Apps Script มาวางที่นี่
-const API_URL = "ใส่_WEB_APP_URL_ของคุณที่นี่"; 
+const API_URL = "https://script.google.com/macros/s/AKfycbzQoIJWsoyZPEGqsiUSrMfxs2xaYNmS5POl6QAQyR303c42eoEaxTqzhYoofu_XZMJycQ/exec"; 
 
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();

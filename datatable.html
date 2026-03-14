@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stain Database | GitHub System</title>
+  
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <link rel="stylesheet" href="CSSdatatable.css">
+</head>
+<body>
+
+  <div class="main-wrapper">
+    <nav id="sidebar" class="sidebar-wrapper shadow">
+      <div class="sidebar-header d-flex align-items-center justify-content-between">
+        <div class="sidebar-brand">
+          <i class="bi bi-cpu-fill text-info"></i>
+          <span class="ms-2">MENU</span>
+        </div>
+        <div id="sidebar-toggle" onclick="toggleSidebar()" class="btn-toggle">
+          <i class="bi bi-chevron-double-right toggle-icon"></i>
+        </div>
+      </div>
+
+      <div class="user-profile-section">
+          <div class="user-avatar-circle" id="userAvatar">G</div>
+          <div class="user-details-text">
+              <p class="user-name" id="displayUserName">Loading...</p>
+              <span class="user-role" id="displayUserDept">Role</span>
+          </div>
+      </div>
+
+      <div class="sidebar-content mt-3">
+        <ul class="nav flex-column">
+          <li class="nav-item">
+            <a class="nav-link active" href="datatable.html">
+              <i class="bi bi-database-fill"></i> <span>Database</span>
+            </a>
+          </li>
+
+          <li class="nav-item">
+            <a class="nav-link" href="Index.html">
+              <i class="bi bi-plus-square-fill"></i> <span>New Record</span>
+            </a>
+          </li>
+
+          <li class="nav-item" id="admin-menu-item" style="display: none;">
+            <a class="nav-link" href="Admin.html">
+              <i class="bi bi-gear-fill"></i> <span>Admin Setup</span>
+            </a>
+          </li>
+          
+          <li class="nav-group-title mt-4 px-4 small text-muted text-uppercase text-nowrap"><span>System</span></li>
+          
+          <li class="nav-item">
+            <div class="nav-link" onclick="openChangePasswordModal()" style="cursor: pointer;">
+              <i class="bi bi-shield-lock-fill"></i> <span>Change Password</span>
+            </div>
+          </li>
+          
+          <li class="nav-item">
+            <div class="nav-link text-danger" onclick="handleLogout()" style="cursor: pointer;">
+              <i class="bi bi-power"></i> <span>Sign Out</span>
+            </div>
+          </li>
+        </ul> 
+      </div>
+    </nav>
+
+    <main class="content-area flex-grow-1 p-0"> 
+      <div class="admin-header-banner">
+        <div class="container-fluid px-4">
+          <h4 class="stain-title-main animate__animated animate__fadeInLeft m-0 py-2">
+            <i class="bi bi-database-fill-gear"></i>
+            <span>Stain Database</span>
+          </h4>
+        </div>
+      </div>
+
+      <div class="p-4"> 
+        <div class="admin-card p-4 shadow-sm animate__animated animate__fadeIn">
+          <div class="table-responsive">
+            <table id="stainTable" class="table table-hover w-100"></table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <script>
+    window.API_URL = "ใส่_WEB_APP_URL_ของคุณที่นี่"; 
+    
+    // ดึงข้อมูลที่เก็บไว้ตอน Login
+    window.userName = sessionStorage.getItem('stain_user') || "Guest";
+    window.userDept = sessionStorage.getItem('stain_dept') || "User";
+    window.userLogin = sessionStorage.getItem('stain_id') || "";
+    window.token = sessionStorage.getItem('stain_token') || "";
+
+    // ป้องกันคนไม่ได้ Login แอบเข้ามา
+    if (!window.token) {
+        window.location.href = 'index.html';
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      // แสดงผลข้อมูล User
+      document.getElementById('displayUserName').innerText = window.userName;
+      document.getElementById('displayUserDept').innerText = window.userDept;
+      document.getElementById('userAvatar').innerText = window.userName.charAt(0).toUpperCase();
+
+      // เช็คสิทธิ์ Admin
+      const adminMenu = document.getElementById('admin-menu-item');
+      if (window.userDept === 'Admin' || window.userDept === 'Application Specialist') {
+        if (adminMenu) adminMenu.style.display = 'block';
+      }
+    });
+
+    function handleLogout() {
+        sessionStorage.clear();
+        window.location.href = 'index.html';
+    }
+  </script>
+
+  <script src="JavaScriptdatatable.js"></script>
+  <script src="JavaScriptCommon.js"></script>
+</body>
+</html>

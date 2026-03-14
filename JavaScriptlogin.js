@@ -1,39 +1,52 @@
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzQoIJWsoyZPEGqsiUSrMfxs2xaYNmS5POl6QAQyR303c42eoEaxTqzhYoofu_XZMJycQ/exec"; // ก๊อปมาวางที่นี่
+// JavaScriptlogin.js
 
-async function handleLogin() {
-    const user = document.getElementById('username').value;
-    const pass = document.getElementById('password').value;
+// 🚩 นำ URL ที่ได้จากการ Deploy ใน Google Apps Script มาวางที่นี่
+const API_URL = "ใส่_WEB_APP_URL_ของคุณที่นี่"; 
 
-    if (!user || !pass) {
-        Swal.fire('กรุณากรอกข้อมูลให้ครบ');
-        return;
-    }
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const u = document.getElementById('user').value;
+    const p = document.getElementById('pass').value;
 
-    Swal.fire({ title: 'กำลังตรวจสอบ...', didOpen: () => Swal.showLoading() });
+    Swal.fire({
+        title: 'กำลังตรวจสอบ...',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+    });
 
     try {
+        // ส่งข้อมูลไปที่ Google Apps Script
         const response = await fetch(API_URL, {
             method: 'POST',
             body: JSON.stringify({
                 action: 'login',
-                data: { user: user, pass: pass }
+                data: { user: u, pass: p }
             })
         });
 
-        const result = await response.json();
+        const res = await response.json();
 
-        if (result.status === "Success") {
-            Swal.fire('สำเร็จ', 'ยินดีต้อนรับ ' + result.userName, 'success')
-            .then(() => {
-                // เก็บชื่อผู้ใช้ไว้ในเครื่อง และย้ายไปหน้าตาราง
-                localStorage.setItem('user', result.userName);
-                window.location.href = 'datatable.html';
+        if (res.status === "Success") {
+            // บันทึกข้อมูลลง Session เหมือนเดิม
+            sessionStorage.setItem('stain_token', res.token);
+            sessionStorage.setItem('stain_user', res.userName);
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'สำเร็จ',
+                text: 'ยินดีต้อนรับ ' + res.userName,
+                timer: 1500,
+                showConfirmButton: false
+            }).then(() => {
+                // เปลี่ยนหน้าไปยัง datatable.html (บน GitHub)
+                window.location.href = 'datatable.html'; 
             });
         } else {
-            Swal.fire('ล้มเหลว', 'รหัสผ่านไม่ถูกต้อง', 'error');
+            Swal.fire('Error', 'Username หรือ Password ไม่ถูกต้อง', 'error');
         }
     } catch (error) {
         console.error(error);
         Swal.fire('Error', 'ไม่สามารถเชื่อมต่อ Server ได้', 'error');
     }
-}
+});

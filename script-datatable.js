@@ -114,7 +114,7 @@ async function initStainTable(callback) {
 function renderTableStructure(data) {
   if (!data || data.length === 0) return;
 
-  const rows = data.slice(1);
+  const rows = data.slice(2);
   // กลับด้านข้อมูลเพื่อให้แถวล่าสุดจาก Sheet มาอยู่บนสุดของตาราง
   rows.reverse(); 
 

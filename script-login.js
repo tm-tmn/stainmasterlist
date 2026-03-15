@@ -19,12 +19,12 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
             headers: { "Content-Type": "text/plain;charset=utf-8" },
             body: JSON.stringify({
                 action: "login",
-                data: {          // ส่งแบบครอบ data ตามที่ doPost ใน Code.gs รอรับ
-                    user: userValue,
-                    pass: passValue
+                data: {           // <--- ต้องมีคำว่า data ครอบไว้
+                    user: user,   // <--- ต้องใช้คำว่า user (ตัวเล็กทั้งหมด)
+                    pass: pass    // <--- ต้องใช้คำว่า pass (ตัวเล็กทั้งหมด)
                 }
-            }) // ปิด JSON.stringify
-        }); // ปิด fetch
+            })
+        });
 
         const result = await response.json();
 

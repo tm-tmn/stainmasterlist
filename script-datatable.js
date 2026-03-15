@@ -114,8 +114,10 @@ async function initStainTable(callback) {
 function renderTableStructure(data) {
   if (!data || data.length === 0) return;
 
-  const rows = data.slice(2);
-  // กลับด้านข้อมูลเพื่อให้แถวล่าสุดจาก Sheet มาอยู่บนสุดของตาราง
+  // 1. ตัด Header ออก 2 แถว (แถวที่ 1 และ 2) ข้อมูลใน rows จะเริ่มที่ข้อมูลจริง (Row 3)
+  const rows = data.slice(2); 
+  
+  // 2. กลับด้านเพื่อให้ข้อมูลล่าสุดมาอยู่บนสุด
   rows.reverse(); 
 
   const displayCols = [1, 2, 9, 10, 11, 12, 18, 20, 22, 40]; 
@@ -125,27 +127,18 @@ function renderTableStructure(data) {
   }
   $('#stainTable').empty();
 
-  // สร้าง Header ให้ครบทุกคอลัมน์
-  let headerHtml = '<thead><tr>';
-  headerHtml += '<th>Site</th>';
-  headerHtml += '<th>S/N</th>';
-  headerHtml += '<th>Brand</th>';
-  headerHtml += '<th>Staining</th>';
-  headerHtml += '<th>Fixing</th>';
-  headerHtml += '<th>Buffer</th>';
-  headerHtml += '<th>Undiluted 1<br><small>(mm:ss)</small></th>';
-  headerHtml += '<th>Diluted 1<br><small>(mm:ss)</small></th>';
-  headerHtml += '<th>Diluted 2<br><small>(mm:ss)</small></th>';
-  headerHtml += '<th>Recorded By</th>';
-  headerHtml += '<th class="text-center">Details</th>';
-  headerHtml += '</tr></thead><tbody id="stainTableBody"></tbody>';
-  
+  // ... (ส่วน Header HTML เหมือนเดิมของคุณ) ...
+  let headerHtml = '<thead><tr><th>Site</th><th>S/N</th><th>Brand</th><th>Staining</th><th>Fixing</th><th>Buffer</th><th>Undiluted 1</th><th>Diluted 1</th><th>Diluted 2</th><th>Recorded By</th><th class="text-center">Details</th></tr></thead><tbody id="stainTableBody"></tbody>';
   $('#stainTable').append(headerHtml);
 
-let bodyHtml = '';
+  let bodyHtml = '';
   rows.forEach((row, idx) => {
-    // คำนวณหาแถวที่ถูกต้องใน Google Sheets (สำคัญมากสำหรับการเปิด View)
-    // แถวที่ 1 คือ Header, ดังนั้นแถวข้อมูลเริ่มที่ 2
+    /**
+     * 3. การคำนวณตำแหน่งแถวที่ถูกต้อง (สำคัญมาก!)
+     * เนื่องจากเราตัดออกไป 2 แถวตอนทำ slice(2) 
+     * และข้อมูลที่ดึงมาจาก Sheet แบบ Array ดัชนีจะเริ่มที่ 0
+     * สูตรที่แม่นยำสำหรับลำดับที่กลับด้านแล้วคือ:
+     */
     let realSheetIndex = (data.length - 1) - idx;
 
     bodyHtml += '<tr>';
@@ -158,7 +151,7 @@ let bodyHtml = '';
         bodyHtml += `<td><div class="d-flex flex-column align-items-center">
                         <span class="badge-user mb-1">${cellData}</span>
                         <small class="text-muted" style="font-size: 0.7rem;">${displayTime}</small>
-                     </div></td>`;
+                      </div></td>`;
       } else if ([18, 20, 22].includes(i)) {
         bodyHtml += `<td><span class="fw-bold text-primary">${cellData}</span></td>`;
       } else {
@@ -167,9 +160,9 @@ let bodyHtml = '';
     });
 
     bodyHtml += `<td class="text-center">
-                   <button class="btn btn-sm btn-view text-white rounded-pill px-3" onclick="openRecordDetail(${realSheetIndex})">
-                   <i class="bi bi-eye-fill me-1"></i> View</button>
-                 </td>`;
+                    <button class="btn btn-sm btn-view text-white rounded-pill px-3" onclick="openRecordDetail(${realSheetIndex})">
+                    <i class="bi bi-eye-fill me-1"></i> View</button>
+                  </td>`;
     bodyHtml += '</tr>';
   });
   
@@ -177,7 +170,7 @@ let bodyHtml = '';
   $('#stainTable').DataTable({ 
     responsive: true, 
     pageLength: 10,
-    order: [], // ไม่ต้องเรียงซ้ำ เพราะเรา reverse() มาแล้ว
+    order: [], 
     language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/th.json' }
   });
 }

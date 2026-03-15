@@ -1,5 +1,5 @@
 // กำหนด URL ของ Google Apps Script Web App (URL เดียวกับที่ใช้ใน datatable)
-const API_URL = "YOUR_GOOGLE_SCRIPT_WEB_APP_URL_HERE";
+const API_URL = "https://script.google.com/macros/s/AKfycbzQoIJWsoyZPEGqsiUSrMfxs2xaYNmS5POl6QAQyR303c42eoEaxTqzhYoofu_XZMJycQ/exec";
 
 document.getElementById('loginForm').addEventListener('submit', async function(e) {
     e.preventDefault();

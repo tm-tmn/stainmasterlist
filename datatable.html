@@ -101,25 +101,39 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <script>
-    // ดึงข้อมูล User จาก sessionStorage (ที่บันทึกไว้ตอน Login)
-    window.userName = sessionStorage.getItem('userName') || "Guest";
-    window.userLogin = sessionStorage.getItem('userLogin') || "";
-    window.userDept = sessionStorage.getItem('userDept') || ""; 
-    window.token = sessionStorage.getItem('token') || "";
+    // 🚩 ปรับให้ชื่อ Key ตรงกับที่บันทึกมาจากหน้า Login
+    window.userName = sessionStorage.getItem('stain_user') || "Guest"; // เปลี่ยนจาก userName
+    window.userDept = sessionStorage.getItem('stain_dept') || "";      // เปลี่ยนจาก userDept
+    window.token = sessionStorage.getItem('stain_token') || "";       // เปลี่ยนจาก token
 
     document.addEventListener('DOMContentLoaded', function() {
-      // อัปเดต UI
+      // อัปเดต UI ชื่อและแผนก
       document.getElementById('display-user-name').innerText = window.userName;
       document.getElementById('display-user-dept').innerText = window.userDept;
-      document.getElementById('user-avatar').innerText = window.userName.charAt(0).toUpperCase();
+      
+      // ทำรูปโปรไฟล์เป็นตัวอักษรตัวแรกของชื่อ
+      if(window.userName !== "Guest") {
+          document.getElementById('user-avatar').innerText = window.userName.charAt(0).toUpperCase();
+      }
 
-      // เช็คสิทธิ์เมนู Admin
+      // เช็คสิทธิ์เมนู Admin (Logic ของคุณถูกต้องแล้ว)
       const adminMenu = document.getElementById('admin-menu-item');
       if (window.userDept === 'Admin' || window.userDept === 'Application Specialist') {
         if (adminMenu) adminMenu.style.display = 'block';
       }
     });
-  </script>
+
+    // ฟังก์ชันจัดการ Sidebar (เพิ่มเข้าไปเผื่อยังไม่มีใน script-common.js)
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('collapsed');
+        const icon = document.querySelector('.toggle-icon');
+        if (icon.classList.contains('bi-chevron-double-right')) {
+            icon.classList.replace('bi-chevron-double-right', 'bi-chevron-double-left');
+        } else {
+            icon.classList.replace('bi-chevron-double-left', 'bi-chevron-double-right');
+        }
+    }
+</script>
 
   <script src="script-datatable.js"></script>
   <script src="script-common.js"></script>

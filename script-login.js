@@ -22,8 +22,6 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
                 data: {
                     user: userValue,  // เปลี่ยนจาก user เป็น userValue
                     pass: passValue   // เปลี่ยนจาก pass เป็น passValue
-        }
-    })
                 }
             })
         });

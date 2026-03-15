@@ -28,7 +28,6 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
         });
         const result = await response.json();
         if (result.status === "Success") {
-            console.log("✅ Login Success! Storing data...");
             localStorage.setItem("userName", result.name);
             localStorage.setItem("userDept", result.dept);
             localStorage.setItem("userRole", result.role);

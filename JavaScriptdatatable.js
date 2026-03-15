@@ -325,9 +325,9 @@ $('#detailBody').html(html);
   modalInstance.show();
 }
 
-function deleteRecord(rowIndex) {
+async function deleteRecord(rowIndex) {
     const rowData = window.cachedStainData[rowIndex];
-    Swal.fire({
+    const result = await Swal.fire({
         title: 'ยืนยันการลบข้อมูล?',
         text: `คุณกำลังจะลบข้อมูลของ Site: ${rowData[1]} ใช่หรือไม่?`,
         icon: 'warning',
@@ -336,19 +336,29 @@ function deleteRecord(rowIndex) {
         confirmButtonText: 'ลบข้อมูล',
         cancelButtonText: 'ยกเลิก',
         reverseButtons: true
-    }).then((result) => {
-        if (result.isConfirmed) {
-            Swal.fire({ title: 'กำลังลบ...', didOpen: () => Swal.showLoading() });
-            google.script.run
-                .withSuccessHandler(response => {
-                    Swal.fire({ icon: 'success', title: 'ลบสำเร็จ', timer: 1500 });
-                    bootstrap.Modal.getInstance(document.getElementById('detailModal'))?.hide();
-                    initStainTable(); 
-                })
-                .withFailureHandler(err => Swal.fire('Error', err, 'error'))
-                .deleteStainRecord(rowIndex);
-        }
     });
+
+    if (result.isConfirmed) {
+        Swal.fire({ title: 'กำลังลบ...', didOpen: () => Swal.showLoading() });
+        try {
+            const response = await fetch(API_URL, {
+                method: "POST",
+                mode: "cors",
+                body: JSON.stringify({
+                    action: "deleteStainRecord",
+                    data: { rowIndex: rowIndex }
+                })
+            });
+            const res = await response.json();
+            if (res.status === "Success") {
+                Swal.fire({ icon: 'success', title: 'ลบสำเร็จ', timer: 1500 });
+                bootstrap.Modal.getInstance(document.getElementById('detailModal'))?.hide();
+                initStainTable(); // โหลดตารางใหม่
+            }
+        } catch (err) {
+            Swal.fire('Error', 'การเชื่อมต่อผิดพลาด', 'error');
+        }
+    }
 }
 
 function editRecord(rowIndex) {

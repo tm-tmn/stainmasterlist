@@ -89,6 +89,7 @@ async function initStainTable(callback) {
     if (!response.ok) throw new Error('Network response was not ok');
 
     const result = await response.json();
+    console.log("📥 Result from Server:", result); // <--- เพิ่มบรรทัดนี้เพื่อเช็คโครงสร้างที่ส่งมาจริง
     
     // ตรวจสอบว่า result เป็น Array หรือไม่ (ป้องกัน data.slice is not a function)
     const actualData = Array.isArray(result) ? result : result.data;

@@ -91,6 +91,7 @@ async function initStainTable(callback) {
     });
 
     const data = await response.json();
+    console.log("Raw Data from Script:", data); // ดูใน Console ว่าเป็น Array [] หรือ Object {}
 
     if (!data || data.length <= 1) {
       Swal.fire('ข้อมูลว่างเปล่า', 'ไม่พบข้อมูลในระบบ', 'info');

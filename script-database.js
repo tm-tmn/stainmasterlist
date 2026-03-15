@@ -90,7 +90,6 @@ async function initStainTable(callback) {
     const actualData = Array.isArray(result) ? result : result.data;
 
     if (!actualData || !Array.isArray(actualData)) {
-      console.error("Data is not an array:", result);
       throw new Error('รูปแบบข้อมูลจาก Server ไม่ถูกต้อง');
     }
 
@@ -729,7 +728,6 @@ function editRecord(rowIndex) {
               fillEditFormStepByStep(rowData, rowIndex);
               initEditReplacementLogic();
           } catch (err) {
-              console.error("Error filling form:", err);
           } finally {
               Swal.close();
           }
@@ -945,7 +943,6 @@ async function fetchOptionsForEdit() {
       }
     });
   } catch (err) {
-    console.error("❌ Fetch Options Error:", err);
     throw err; // ส่งต่อ Error ให้ editRecord จับไปแสดง Swal
   }
 }
@@ -955,7 +952,6 @@ function fillEditFormStepByStep(rowData, rowIndex) {
   const setValById = (id, value) => {
     const el = document.getElementById(id);
     if (!el) {
-      console.warn(`⚠️ Element ID [${id}] not found.`);
       return;
     }
 
@@ -1043,7 +1039,6 @@ function fillEditFormStepByStep(rowData, rowIndex) {
     }, 200);
 
   } catch (e) { 
-    console.error("❌ Error in fillEditFormStepByStep:", e);
   }
 }
 
@@ -1322,7 +1317,6 @@ async function downloadPDF() {
         Swal.close();
 
     } catch (error) {
-        console.error("PDF Creation Error:", error);
         Swal.fire('Error', 'เกิดข้อผิดพลาดในการสร้างไฟล์ PDF', 'error');
     }
 }

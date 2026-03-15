@@ -59,9 +59,10 @@
 
   // --- คงฟังก์ชัน redirectToLogin ไว้เหมือนเดิม ---
 function redirectToLogin() {
-    const baseUrl = window.scriptUrl || "<?= ScriptApp.getService().getUrl() ?>";
-    window.top.location.replace(baseUrl + "?page=login");
+    sessionStorage.clear();
+    window.location.href = 'index.html';
 }
+
 
 // ฟังก์ชันเช็คเวลาหมดอายุจาก Token โดยตรง (ฝั่ง Client)
 function startAutoLogoutTimer() {

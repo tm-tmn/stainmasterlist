@@ -19,9 +19,11 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
             headers: { "Content-Type": "text/plain;charset=utf-8" },
             body: JSON.stringify({
                 action: "login",
-                data: {           // <--- ต้องมีคำว่า data ครอบไว้
-                    user: user,   // <--- ต้องใช้คำว่า user (ตัวเล็กทั้งหมด)
-                    pass: pass    // <--- ต้องใช้คำว่า pass (ตัวเล็กทั้งหมด)
+                data: {
+                    user: userValue,  // เปลี่ยนจาก user เป็น userValue
+                    pass: passValue   // เปลี่ยนจาก pass เป็น passValue
+        }
+    })
                 }
             })
         });

@@ -1,5 +1,4 @@
-// 1. ตั้งค่า URL ของ Google Apps Script Web App (ใช้ตัวเดิมที่คุณตั้งไว้)
-const API_URL = "https://script.google.com/macros/s/AKfycbzQoIJWsoyZPEGqsiUSrMfxs2xaYNmS5POl6QAQyR303c42eoEaxTqzhYoofu_XZMJycQ/exec"; 
+
 
 // 2. ดึงข้อมูลจาก sessionStorage ที่เก็บไว้ตอน Login
 window.userName = sessionStorage.getItem('stain_user') || "Guest";

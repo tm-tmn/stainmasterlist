@@ -102,27 +102,24 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <script>
-    // ✅ แก้ไขให้ดึงจาก localStorage และใช้ Key ให้ตรงกับหน้า Login
-    window.userName = localStorage.getItem('userName') || "Guest"; 
-    window.userDept = localStorage.getItem('userDept') || "";      
-    window.isLoggedIn = localStorage.getItem('isLoggedIn') || "false";
+    // ดึงข้อมูลจาก localStorage มาเก็บในตัวแปรหน้าเว็บ
+    window.userName = localStorage.getItem('userName') || "Guest";
+    window.userDept = localStorage.getItem('userDept') || "";
 
     document.addEventListener('DOMContentLoaded', function() {
-      // อัปเดต UI ชื่อและแผนก
+      // 1. แสดงผลชื่อและแผนก
       document.getElementById('display-user-name').innerText = window.userName;
       document.getElementById('display-user-dept').innerText = window.userDept;
       
-      // ทำรูปโปรไฟล์เป็นตัวอักษรตัวแรกของชื่อ
+      // 2. รูปโปรไฟล์ตัวอักษรแรก
       if(window.userName !== "Guest") {
           document.getElementById('user-avatar').innerText = window.userName.charAt(0).toUpperCase();
       }
 
-      // เช็คสิทธิ์เมนู Admin
+      // 3. เปิด/ปิดเมนู Admin (เช็คจากแผนกตรงๆ)
       const adminMenu = document.getElementById('admin-menu-item');
-      // ตรวจสอบทั้งแผนก (Dept) หรือ บทบาท (Role) ตามที่คุณบันทึกไว้
-      const userRole = localStorage.getItem('userRole'); 
-      if (window.userDept === 'Admin' || window.userDept === 'Application Specialist' || userRole === 'Admin') {
-        if (adminMenu) adminMenu.style.display = 'block';
+      if (window.userDept === 'Admin' || window.userDept === 'Application Specialist') {
+          if (adminMenu) adminMenu.style.display = 'block';
       }
     });
 

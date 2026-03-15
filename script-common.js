@@ -1,16 +1,31 @@
-// 1. กำหนดค่าส่วนกลาง (ตรวจสอบไม่ให้ประกาศซ้ำ)
+// 1. กำหนดค่าส่วนกลาง
 if (typeof window.API_URL === 'undefined') {
     window.API_URL = "https://script.google.com/macros/s/AKfycbzQoIJWsoyZPEGqsiUSrMfxs2xaYNmS5POl6QAQyR303c42eoEaxTqzhYoofu_XZMJycQ/exec";
 }
 
 // 2. เรียกใช้งานเมื่อโหลดหน้าเว็บ
 $(document).ready(function() {
-    checkAuthentication(); // เช็คสิทธิ์ก่อนเริ่มงาน
-    resetIdleTimer();
-});
+    // ดึงข้อมูลผู้ใช้มาแสดงผลบน Sidebar ก่อนเช็คสิทธิ์
+    const userName = localStorage.getItem("userName");
+    const userDept = localStorage.getItem("userDept");
+    const isLoggedIn = localStorage.getItem("isLoggedIn");
 
-// 3. ดักจับเหตุการณ์การใช้งานเพื่อ Reset Idle Timer
-$(document).on('mousemove keypress click scroll touchstart', function() {
+    if (isLoggedIn === "true") {
+        // อัปเดต UI ชื่อและแผนก (อิงตาม ID ใน HTML ของคุณ)
+        if ($('#userNameDisplay').length) $('#userNameDisplay').text(userName);
+        if ($('#userDeptDisplay').length) $('#userDeptDisplay').text(userDept);
+    } else {
+        // ถ้าไม่มีข้อมูลการล็อกอิน ให้แสดงแจ้งเตือนแล้วดีดออก
+        Swal.fire({
+            icon: 'error',
+            title: 'กรุณาเข้าสู่ระบบ',
+            text: 'คุณยังไม่ได้เข้าสู่ระบบ หรือ Session หมดอายุ',
+            confirmButtonText: 'ตกลง'
+        }).then(() => {
+            window.location.href = "login.html";
+        });
+    }
+
     resetIdleTimer();
 });
 

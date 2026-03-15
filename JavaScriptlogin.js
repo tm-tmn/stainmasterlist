@@ -1,15 +1,12 @@
-// JavaScriptlogin.js
-
 const API_URL = "https://script.google.com/macros/s/AKfycbzQoIJWsoyZPEGqsiUSrMfxs2xaYNmS5POl6QAQyR303c42eoEaxTqzhYoofu_XZMJycQ/exec"; 
 
-// ฟังก์ชันช่วยส่งข้อมูลแบบรองรับ Google Apps Script Redirect
 async function callAPI(action, data = {}) {
     try {
         const response = await fetch(API_URL, {
             method: "POST",
-            mode: "cors", // ต้องเปิด cors ไว้
+            mode: "cors", 
             headers: {
-                "Content-Type": "text/plain;charset=utf-8", // ใช้ text/plain เพื่อเลี่ยง Preflight request
+                "Content-Type": "text/plain;charset=utf-8", 
             },
             body: JSON.stringify({ action, data })
         });
@@ -33,18 +30,23 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     });
 
     try {
-        // 🚩 เรียกใช้ฟังก์ชัน callAPI ที่เราสร้างไว้ข้างบน
         const res = await callAPI('login', { user: u, pass: p });
 
         if (res.status === "Success") {
+            // ✅ 1. เก็บ Token และชื่อผู้ใช้ (เหมือนเดิม)
             sessionStorage.setItem('stain_token', res.token);
             sessionStorage.setItem('stain_user', res.userName);
-            sessionStorage.setItem('login_id', u); // เก็บไว้ใช้ตอนเปลี่ยนรหัสผ่าน
+            sessionStorage.setItem('login_id', u); 
+
+            // ✅ 2. เพิ่มการเก็บข้อมูล "แผนก" (Dept) ลงใน sessionStorage
+            // ค่า res.userDept มาจากที่เราแก้ใน Code.gs
+            sessionStorage.setItem('stain_dept', res.userDept || 'ไม่มีแผนก'); 
 
             Swal.fire({
                 icon: 'success',
                 title: 'สำเร็จ',
-                text: 'ยินดีต้อนรับ ' + res.userName,
+                // ✅ แสดงชื่อพร้อมแผนกในข้อความต้อนรับ
+                text: `ยินดีต้อนรับคุณ ${res.userName} (${res.userDept || ''})`,
                 timer: 1500,
                 showConfirmButton: false
             }).then(() => {
@@ -54,7 +56,6 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
             Swal.fire('Error', 'Username หรือ Password ไม่ถูกต้อง', 'error');
         }
     } catch (error) {
-        // หากยังเข้าตรงนี้ แสดงว่า URL ของ Script อาจจะผิด หรือสิทธิ์การเข้าถึงไม่ได้เป็น Anyone
         Swal.fire('Error', 'ไม่สามารถเชื่อมต่อ Server ได้\nกรุณาตรวจสอบการ Deploy ของระบบ', 'error');
     }
 });

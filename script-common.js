@@ -31,32 +31,24 @@
   });
 
 
-  function handleLogout() {
-  Swal.fire({
-    title: 'คุณต้องการออกจากระบบใช่หรือไม่?',
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonText: 'ออกจากระบบ',
-    cancelButtonText: 'ยกเลิก'
-  }).then((result) => {
-    if (result.isConfirmed) {
-      // ดึง Token ปัจจุบันมาเตรียมทำลาย
-      const currentToken = window.token || sessionStorage.getItem('stain_token');
-
-      // 1. ส่งไปบอก Server ให้ทำลาย Token นี้ในระบบ
-      google.script.run.destroyTokenOnServer(currentToken);
-
-      // 2. ล้างข้อมูลในเครื่อง User
-      sessionStorage.clear();
-      window.token = null;
-
-      // 3. ดีดกลับหน้า Login (ใช้ .replace เพื่อไม่ให้กด Back กลับมาได้ง่ายๆ)
-      const baseUrl = window.scriptUrl || "<?= scriptUrl ?>";
-      window.top.location.replace(baseUrl + "?page=login");
-    }
-  });
+function handleLogout() {
+    Swal.fire({
+        title: 'ยืนยันการออกจากระบบ?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'ใช่, ออกจากระบบ',
+        cancelButtonText: 'ยกเลิก'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // ล้างข้อมูลทั้งหมดใน LocalStorage
+            localStorage.clear(); 
+            // ส่งกลับไปหน้า Login
+            window.location.href = "login.html";
+        }
+    })
 }
-
   // --- คงฟังก์ชัน redirectToLogin ไว้เหมือนเดิม ---
 function redirectToLogin() {
     sessionStorage.clear();

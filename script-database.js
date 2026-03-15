@@ -82,16 +82,12 @@ async function initStainTable(callback) {
   try {
     const response = await fetch(API_URL, {
       method: "POST",
-      // ใช้ JSON.stringify เสมอเพื่อให้ฝั่ง Apps Script รับ e.postData.contents ได้
       body: JSON.stringify({ action: "getStainSheetData" }) 
     });
 
     if (!response.ok) throw new Error('Network response was not ok');
 
     const result = await response.json();
-    console.log("📥 Result from Server:", result); // <--- เพิ่มบรรทัดนี้เพื่อเช็คโครงสร้างที่ส่งมาจริง
-    
-    // ตรวจสอบว่า result เป็น Array หรือไม่ (ป้องกัน data.slice is not a function)
     const actualData = Array.isArray(result) ? result : result.data;
 
     if (!actualData || !Array.isArray(actualData)) {
@@ -106,7 +102,6 @@ async function initStainTable(callback) {
     Swal.close();
 
   } catch (err) {
-    console.error("Fetch Error Detail:", err);
     Swal.fire('Error', 'ไม่สามารถดึงข้อมูลได้: ' + err.message, 'error');
   }
 }

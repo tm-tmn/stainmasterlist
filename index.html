@@ -1,13 +1,27 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta http-equiv="refresh" content="0; url=login.html">
-    <script type="text/javascript">
-        window.location.href = "login.html"
-    </script>
+    <meta charset="UTF-8">
     <title>Redirecting...</title>
+    <script type="text/javascript">
+        // เช็คว่าในเครื่องมีข้อมูลการ Login ค้างไว้ไหม
+        const isLoggedIn = localStorage.getItem("isLoggedIn");
+
+        if (isLoggedIn === "true") {
+            // ถ้า Login แล้ว ให้ไปหน้าตารางข้อมูล
+            window.location.href = "datatable.html";
+        } else {
+            // ถ้ายังไม่ได้ Login ให้ไปหน้า Login
+            window.location.href = "login.html";
+        }
+    </script>
+    
+    <meta http-equiv="refresh" content="2; url=login.html">
 </head>
 <body>
-    หากระบบไม่เปลี่ยนหน้าอัตโนมัติ <a href="login.html">คลิกที่นี่</a>
+    <div style="text-align: center; margin-top: 50px; font-family: sans-serif;">
+        <p>กำลังนำคุณเข้าสู่ระบบ...</p>
+        <small>หากระบบไม่เปลี่ยนหน้าอัตโนมัติ <a href="login.html">คลิกที่นี่</a></small>
+    </div>
 </body>
 </html>

@@ -31,6 +31,7 @@ $(document).ready(function() {
 
 // ฟังก์ชันเช็คสถานะการเข้าสู่ระบบ
 function checkAuthentication() {
+    // ถ้าค่าใน localStorage ไม่ใช่ "true" ให้ดีดออกทันที
     if (localStorage.getItem("isLoggedIn") !== "true") {
         window.location.href = "login.html";
     }

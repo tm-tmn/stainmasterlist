@@ -80,36 +80,33 @@ async function initStainTable(callback) {
   });
 
   try {
-    // 🚩 เปลี่ยนจาก google.script.run มาใช้ fetch แทน
     const response = await fetch(API_URL, {
       method: "POST",
-      mode: "cors",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ 
-        action: "getStainSheetData" // ชื่อ action ต้องตรงกับใน Code.gs
-      })
+      // ใช้ JSON.stringify เสมอเพื่อให้ฝั่ง Apps Script รับ e.postData.contents ได้
+      body: JSON.stringify({ action: "getStainSheetData" }) 
     });
 
+    if (!response.ok) throw new Error('Network response was not ok');
+
     const result = await response.json();
-    console.log("Raw Data from Script:", data); // ดูใน Console ว่าเป็น Array [] หรือ Object {}
+    
+    // ตรวจสอบว่า result เป็น Array หรือไม่ (ป้องกัน data.slice is not a function)
+    const actualData = Array.isArray(result) ? result : result.data;
 
-// สมมติว่า Backend ส่งมาในรูปแบบ { status: "Success", data: [...] }
-const actualData = Array.isArray(result) ? result : result.data; 
+    if (!actualData || !Array.isArray(actualData)) {
+      console.error("Data is not an array:", result);
+      throw new Error('รูปแบบข้อมูลจาก Server ไม่ถูกต้อง');
+    }
 
-if (!actualData || actualData.length <= 1) {
-    Swal.fire('ข้อมูลว่างเปล่า', 'ไม่พบข้อมูลในระบบ', 'info');
-    return;
-}
+    window.cachedStainData = actualData;
+    renderTableStructure(actualData);
 
-window.cachedStainData = actualData; 
-renderTableStructure(actualData);
-
-    if (callback && typeof callback === 'function') callback();
+    if (callback) callback();
     Swal.close();
 
   } catch (err) {
-    console.error(err);
-    Swal.fire('Error', 'การเชื่อมต่อผิดพลาด หรือ URL Script ไม่ถูกต้อง', 'error');
+    console.error("Fetch Error Detail:", err);
+    Swal.fire('Error', 'ไม่สามารถดึงข้อมูลได้: ' + err.message, 'error');
   }
 }
 

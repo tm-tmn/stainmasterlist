@@ -1,11 +1,11 @@
-// กำหนด URL ของ Google Apps Script Web App (URL เดียวกับที่ใช้ใน datatable)
+// กำหนด URL ของ Google Apps Script Web App
 const API_URL = "https://script.google.com/macros/s/AKfycbzQoIJWsoyZPEGqsiUSrMfxs2xaYNmS5POl6QAQyR303c42eoEaxTqzhYoofu_XZMJycQ/exec";
 
 document.getElementById('loginForm').addEventListener('submit', async function(e) {
     e.preventDefault();
 
-    const user = document.getElementById('username').value;
-    const pass = document.getElementById('password').value;
+    const userValue = document.getElementById('username').value;
+    const passValue = document.getElementById('password').value;
     const loginBtn = document.getElementById('loginBtn');
 
     // แสดงสถานะกำลังโหลด
@@ -18,20 +18,21 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
             mode: "cors",
             headers: { "Content-Type": "text/plain;charset=utf-8" },
             body: JSON.stringify({
-            action: "login",
-            user: user, // เปลี่ยนจาก username เป็น user
-            pass: pass  // เปลี่ยนจาก password เป็น pass
-})
-            })
-        });
+                action: "login",
+                data: {          // ส่งแบบครอบ data ตามที่ doPost ใน Code.gs รอรับ
+                    user: userValue,
+                    pass: passValue
+                }
+            }) // ปิด JSON.stringify
+        }); // ปิด fetch
 
         const result = await response.json();
 
         if (result.status === "Success") {
-            // ✨ ส่วนสำคัญ: บันทึกข้อมูลลงใน LocalStorage เพื่อให้หน้าอื่นดึงไปใช้ได้
+            // บันทึกข้อมูลลงใน LocalStorage
             localStorage.setItem("userName", result.name);
             localStorage.setItem("userDept", result.dept);
-            localStorage.setItem("userRole", result.role); // เช่น Admin หรือ User
+            localStorage.setItem("userRole", result.role);
             localStorage.setItem("isLoggedIn", "true");
 
             Swal.fire({
@@ -41,11 +42,10 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
                 timer: 1500,
                 showConfirmButton: false
             }).then(() => {
-                window.location.href = "datatable.html"; // ไปยังหน้าตารางข้อมูล
+                window.location.href = "database.html"; // เปลี่ยนเป็นหน้าฐานข้อมูล
             });
 
         } else {
-            // กรณีรหัสผ่านผิดหรือหา user ไม่เจอ
             Swal.fire({
                 icon: 'error',
                 title: 'เข้าสู่ระบบไม่สำเร็จ',
@@ -68,9 +68,6 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
     }
 });
 
-/**
- * ฟังก์ชันเสริมสำหรับเช็คสถานะการ Login (เผื่อไว้ใช้ในหน้าอื่นๆ)
- */
 function checkAuth() {
     if (localStorage.getItem("isLoggedIn") !== "true") {
         window.location.href = "login.html";

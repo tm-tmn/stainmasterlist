@@ -18,9 +18,10 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
             mode: "cors",
             headers: { "Content-Type": "text/plain;charset=utf-8" },
             body: JSON.stringify({
-                action: "login",
-                username: user,
-                password: pass
+            action: "login",
+            user: user, // เปลี่ยนจาก username เป็น user
+            pass: pass  // เปลี่ยนจาก password เป็น pass
+})
             })
         });
 

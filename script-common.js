@@ -1,4 +1,8 @@
-  // เรียกใช้งานเมื่อโหลดหน้าเว็บ
+// กำหนด URL ของ Google Apps Script Web App (URL เดียวกับที่ใช้ใน datatable)
+const API_URL = "https://script.google.com/macros/s/AKfycbzQoIJWsoyZPEGqsiUSrMfxs2xaYNmS5POl6QAQyR303c42eoEaxTqzhYoofu_XZMJycQ/exec";
+
+
+// เรียกใช้งานเมื่อโหลดหน้าเว็บ
   $(document).ready(function() {
       startAutoLogoutTimer();
   });

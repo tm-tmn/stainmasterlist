@@ -1,200 +1,112 @@
-// 1. ตั้งค่า URL ของ Google Apps Script Web App
+// 1. ตั้งค่า URL ของ Google Apps Script Web App (ใช้ตัวเดิมที่คุณตั้งไว้)
 const API_URL = "https://script.google.com/macros/s/AKfycbzQoIJWsoyZPEGqsiUSrMfxs2xaYNmS5POl6QAQyR303c42eoEaxTqzhYoofu_XZMJycQ/exec"; 
 
+// 2. ดึงข้อมูลจาก sessionStorage ที่เก็บไว้ตอน Login
+window.userName = sessionStorage.getItem('stain_user') || "Guest";
+window.userLogin = sessionStorage.getItem('login_id') || "";
+window.userDept = sessionStorage.getItem('stain_dept') || ""; 
+window.token = sessionStorage.getItem('stain_token') || "";
 
 $(document).ready(function() {
-  initStainTable();
-});
-
-window.userName = "<?= currentUserName ?>";
-  window.userLogin = "<?= userLogin ?>";
-  window.userDept = "<?= currentDept ?>"; 
-  window.token = "<?= currentToken ?>";
-
-  document.addEventListener('DOMContentLoaded', function() {
-    const manageUserMenu = document.getElementById('menu-manage-user');
-    const dept = window.userDept;
-
-    // 🚩 เงื่อนไข: ถ้าไม่ใช่ Admin (L3) ให้ซ่อนเมนู Manage USER ทันที
-    if (dept !== 'Admin') {
-      if (manageUserMenu) manageUserMenu.style.display = 'none';
-    }
-  });
-
-
-(function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const urlToken = urlParams.get('t');
-    const urlUser = urlParams.get('user');
-    
-    // 🛡️ เช็คเบื้องต้น: ถ้า URL ไม่มีค่าสำคัญ ให้เด้งกลับหน้า Login ผ่านปุ่มกด
-    if (!urlToken || !urlUser) {
+    // ตรวจสอบเบื้องต้น: ถ้าไม่มี Token ให้ไล่กลับหน้า Login ทันที
+    if (!window.token || window.userName === "Guest") {
         Swal.fire({
             icon: 'error',
-            title: 'การเข้าถึงถูกปฏิเสธ',
-            text: 'โปรดเข้าสู่ระบบใหม่อีกครั้ง',
+            title: 'กรุณาเข้าสู่ระบบ',
+            text: 'คุณยังไม่ได้เข้าสู่ระบบ หรือ Session หมดอายุ',
             confirmButtonText: 'ตกลง',
             allowOutsideClick: false
         }).then(() => {
-            redirectToLogin();
+            window.location.href = 'index.html';
         });
         return;
     }
 
-    // 🛡️ เช็คความถูกต้องของกุญแจกับ Server
-      google.script.run
-        .withSuccessHandler(isValid => {
-          if (!isValid) {
-            Swal.fire({
-              icon: 'warning',
-              title: 'Session หมดอายุ',
-              text: 'เพื่อความปลอดภัย โปรดเข้าสู่ระบบใหม่',
-              confirmButtonText: 'ตกลง',
-              allowOutsideClick: false
-            }).then(() => {
-                redirectToLogin();
-            });
-          }
-        })
-        .validateSecureToken(urlToken, urlUser);
-  })();
+    // ถ้ามีข้อมูลครบ ให้เริ่มโหลดตาราง
+    initStainTable();
+    
+    // จัดการเมนูตามสิทธิ์
+    const manageUserMenu = document.getElementById('menu-manage-user');
+    // 🚩 เงื่อนไข: ถ้าไม่ใช่ Admin ให้ซ่อนเมนู Manage USER
+    if (window.userDept !== 'Admin') {
+        if (manageUserMenu) manageUserMenu.style.display = 'none';
+    }
+});
 
-/**
- * ฟังก์ชันสำหรับเปิดหน้าต่างเปลี่ยนรหัสผ่านตัวเอง
- */
-function openChangePasswordModal() {
-  document.getElementById('self-new-pass').value = '';
-  document.getElementById('self-confirm-pass').value = '';
-  
-  // รีเซ็ตให้เป็น type password และไอคอนตาเปิด
-  const p1 = document.getElementById('self-new-pass');
-  const p2 = document.getElementById('self-confirm-pass');
-  p1.type = 'password';
-  p2.type = 'password';
-  
-  const myModal = new bootstrap.Modal(document.getElementById('selfChangePassModal'));
-  myModal.show();
+
+// ฟังก์ชันสำหรับส่งกลับหน้า Login
+function redirectToLogin() {
+    sessionStorage.clear();
+    window.location.href = 'index.html';
 }
 
 /**
- * สลับการมองเห็นรหัสผ่าน
+ * 🛡️ แทนที่ระบบตรวจสอบ Token แบบเดิม (google.script.run)
+ * เป็นการเช็คผ่าน fetch (ถ้าต้องการตรวจสอบความถูกต้องของ Token กับ Server อีกครั้ง)
  */
-function toggleSelfPassword(inputId, btn) {
-  const input = document.getElementById(inputId);
-  const icon = btn.querySelector('i');
-  if (input.type === 'password') {
-    input.type = 'text';
-    icon.classList.replace('bi-eye-fill', 'bi-eye-slash-fill');
-  } else {
-    input.type = 'password';
-    icon.classList.replace('bi-eye-slash-fill', 'bi-eye-fill');
-  }
-}
-
-/**
- * ส่งข้อมูลเปลี่ยนรหัสผ่าน
- */
-function submitSelfChangePass() {
-  const p1 = document.getElementById('self-new-pass').value.trim();
-  const p2 = document.getElementById('self-confirm-pass').value.trim();
-  const currentLoginID = window.userLogin;
-
-  if (!currentLoginID || currentLoginID === "undefined") {
-    Swal.fire('ผิดพลาด', 'ไม่พบข้อมูลบัญชีผู้ใช้ กรุณาลอง Login ใหม่', 'error');
-    return;
-  }
-
-  if (!p1 || !p2) {
-    Swal.fire('คำเตือน', 'กรุณากรอกข้อมูลให้ครบถ้วน', 'warning');
-    return;
-  }
-
-  if (p1 !== p2) {
-    Swal.fire('ผิดพลาด', 'รหัสผ่านใหม่และยืนยันรหัสผ่านไม่ตรงกัน', 'error');
-    return;
-  }
-
-  const passwordRegex = /^[A-Za-z0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]+$/;
-  if (!passwordRegex.test(p1)) {
-    Swal.fire({
-      icon: 'error',
-      title: 'รูปแบบไม่ถูกต้อง',
-      text: 'รหัสผ่านต้องเป็นภาษาอังกฤษ ตัวเลข และสัญลักษณ์เท่านั้น ห้ามมีภาษาไทยหรือเว้นวรรค',
-      confirmButtonColor: '#d33'
-    });
-    return;
-  }
-
-  Swal.fire({
-    title: 'กำลังบันทึก...',
-    allowOutsideClick: false,
-    didOpen: () => { Swal.showLoading(); }
-  });
-  
-    google.script.run
-    .withSuccessHandler(function(res) {
-      Swal.close();
-      if (res.success) {
-        // 1. ปิด Modal
-        const modalElement = document.getElementById('selfChangePassModal');
-        const modalInstance = bootstrap.Modal.getInstance(modalElement);
-        if (modalInstance) modalInstance.hide();
-        
-        // ✨ จุดสำคัญ: สั่งทำลาย Token ใน Server ทันที
-        const currentToken = window.token; 
-        if (currentToken) {
-          google.script.run.destroyTokenOnServer(currentToken); // สั่งทำลายใน Cache
-        }
-
-        // 2. แจ้งสำเร็จ และเมื่อกด "ตกลง" ให้ Logout ทันที
-        Swal.fire({
-          icon: 'success',
-          title: 'สำเร็จ',
-          text: 'เปลี่ยนรหัสผ่านเรียบร้อยแล้ว ระบบจะนำคุณออกจากระบบเพื่อเข้าสู่ระบบใหม่',
-          confirmButtonText: 'ตกลง',
-          allowOutsideClick: false
-        }).then(() => {
-          // 3. ล้างข้อมูลในเครื่อง Browser
-          sessionStorage.clear();
-          window.token = null;
-
-          // 4. ดีดกลับหน้า Login ด้วย .replace 
-          // (การใช้ .replace จะช่วยแทนที่ประวัติหน้าปัจจุบัน ทำให้กด Back กลับมาได้ยากขึ้น)
-          const baseUrl = window.scriptUrl || "<?= scriptUrl ?>";
-          window.top.location.replace(baseUrl + "?page=login"); 
+async function validateSession() {
+    try {
+        const response = await fetch(API_URL, {
+            method: "POST",
+            mode: "cors",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify({
+                action: "validateToken",
+                data: { token: window.token, user: window.userLogin }
+            })
         });
-        
-      } else {
-        Swal.fire('ล้มเหลว', res.message, 'error');
-      }
-    })
-    .withFailureHandler(err => {
-        Swal.close();
-        Swal.fire('Error', 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้', 'error');
-    })
-    .updatePasswordInSheet(currentLoginID, p1);
+        const res = await response.json();
+        if (res.status !== "Valid") {
+            throw new Error("Invalid Session");
+        }
+    } catch (err) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Session หมดอายุ',
+            text: 'โปรดเข้าสู่ระบบใหม่',
+            confirmButtonText: 'ตกลง'
+        }).then(() => {
+            redirectToLogin();
+        });
+    }
 }
 
-function initStainTable(callback) {
+
+async function initStainTable(callback) {
   Swal.fire({
     title: 'กำลังดึงข้อมูล.....',
     allowOutsideClick: false,
     didOpen: () => Swal.showLoading()
   });
 
-  google.script.run
-    .withSuccessHandler(function(data) {
-      if (!data || data.length <= 1) {
-        Swal.fire('ข้อมูลว่างเปล่า', 'ไม่พบข้อมูลในระบบ', 'info');
-        return;
-      }
-      window.cachedStainData = data; 
-      renderTableStructure(data);
-      if (callback && typeof callback === 'function') callback();
-      Swal.close();
-    })
-    .withFailureHandler(err => Swal.fire('Error', 'การเชื่อมต่อผิดพลาด', 'error'))
-    .getStainSheetData();
+  try {
+    // 🚩 เปลี่ยนจาก google.script.run มาใช้ fetch แทน
+    const response = await fetch(API_URL, {
+      method: "POST",
+      mode: "cors",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ 
+        action: "getStainSheetData" // ชื่อ action ต้องตรงกับใน Code.gs
+      })
+    });
+
+    const data = await response.json();
+
+    if (!data || data.length <= 1) {
+      Swal.fire('ข้อมูลว่างเปล่า', 'ไม่พบข้อมูลในระบบ', 'info');
+      return;
+    }
+
+    window.cachedStainData = data; 
+    renderTableStructure(data);
+
+    if (callback && typeof callback === 'function') callback();
+    Swal.close();
+
+  } catch (err) {
+    console.error(err);
+    Swal.fire('Error', 'การเชื่อมต่อผิดพลาด หรือ URL Script ไม่ถูกต้อง', 'error');
+  }
 }
 
 function renderTableStructure(data) {
@@ -1483,3 +1395,120 @@ async function downloadPDF() {
         Swal.fire('Error', 'เกิดข้อผิดพลาดในการสร้างไฟล์ PDF', 'error');
     }
 }
+
+/**
+ * ฟังก์ชันสำหรับเปิดหน้าต่างเปลี่ยนรหัสผ่านตัวเอง
+ */
+function openChangePasswordModal() {
+  document.getElementById('self-new-pass').value = '';
+  document.getElementById('self-confirm-pass').value = '';
+  
+  // รีเซ็ตให้เป็น type password และไอคอนตาเปิด
+  const p1 = document.getElementById('self-new-pass');
+  const p2 = document.getElementById('self-confirm-pass');
+  p1.type = 'password';
+  p2.type = 'password';
+  
+  const myModal = new bootstrap.Modal(document.getElementById('selfChangePassModal'));
+  myModal.show();
+}
+
+/**
+ * สลับการมองเห็นรหัสผ่าน
+ */
+function toggleSelfPassword(inputId, btn) {
+  const input = document.getElementById(inputId);
+  const icon = btn.querySelector('i');
+  if (input.type === 'password') {
+    input.type = 'text';
+    icon.classList.replace('bi-eye-fill', 'bi-eye-slash-fill');
+  } else {
+    input.type = 'password';
+    icon.classList.replace('bi-eye-slash-fill', 'bi-eye-fill');
+  }
+}
+
+/**
+ * ส่งข้อมูลเปลี่ยนรหัสผ่าน
+ */
+function submitSelfChangePass() {
+  const p1 = document.getElementById('self-new-pass').value.trim();
+  const p2 = document.getElementById('self-confirm-pass').value.trim();
+  const currentLoginID = window.userLogin;
+
+  if (!currentLoginID || currentLoginID === "undefined") {
+    Swal.fire('ผิดพลาด', 'ไม่พบข้อมูลบัญชีผู้ใช้ กรุณาลอง Login ใหม่', 'error');
+    return;
+  }
+
+  if (!p1 || !p2) {
+    Swal.fire('คำเตือน', 'กรุณากรอกข้อมูลให้ครบถ้วน', 'warning');
+    return;
+  }
+
+  if (p1 !== p2) {
+    Swal.fire('ผิดพลาด', 'รหัสผ่านใหม่และยืนยันรหัสผ่านไม่ตรงกัน', 'error');
+    return;
+  }
+
+  const passwordRegex = /^[A-Za-z0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]+$/;
+  if (!passwordRegex.test(p1)) {
+    Swal.fire({
+      icon: 'error',
+      title: 'รูปแบบไม่ถูกต้อง',
+      text: 'รหัสผ่านต้องเป็นภาษาอังกฤษ ตัวเลข และสัญลักษณ์เท่านั้น ห้ามมีภาษาไทยหรือเว้นวรรค',
+      confirmButtonColor: '#d33'
+    });
+    return;
+  }
+
+  Swal.fire({
+    title: 'กำลังบันทึก...',
+    allowOutsideClick: false,
+    didOpen: () => { Swal.showLoading(); }
+  });
+  
+    google.script.run
+    .withSuccessHandler(function(res) {
+      Swal.close();
+      if (res.success) {
+        // 1. ปิด Modal
+        const modalElement = document.getElementById('selfChangePassModal');
+        const modalInstance = bootstrap.Modal.getInstance(modalElement);
+        if (modalInstance) modalInstance.hide();
+        
+        // ✨ จุดสำคัญ: สั่งทำลาย Token ใน Server ทันที
+        const currentToken = window.token; 
+        if (currentToken) {
+          google.script.run.destroyTokenOnServer(currentToken); // สั่งทำลายใน Cache
+        }
+
+        // 2. แจ้งสำเร็จ และเมื่อกด "ตกลง" ให้ Logout ทันที
+        Swal.fire({
+          icon: 'success',
+          title: 'สำเร็จ',
+          text: 'เปลี่ยนรหัสผ่านเรียบร้อยแล้ว ระบบจะนำคุณออกจากระบบเพื่อเข้าสู่ระบบใหม่',
+          confirmButtonText: 'ตกลง',
+          allowOutsideClick: false
+        }).then(() => {
+          // 3. ล้างข้อมูลในเครื่อง Browser
+          sessionStorage.clear();
+          window.token = null;
+
+          // 4. ดีดกลับหน้า Login ด้วย .replace 
+          // (การใช้ .replace จะช่วยแทนที่ประวัติหน้าปัจจุบัน ทำให้กด Back กลับมาได้ยากขึ้น)
+          const baseUrl = window.scriptUrl || "<?= scriptUrl ?>";
+          window.top.location.replace(baseUrl + "?page=login"); 
+        });
+        
+      } else {
+        Swal.fire('ล้มเหลว', res.message, 'error');
+      }
+    })
+    .withFailureHandler(err => {
+        Swal.close();
+        Swal.fire('Error', 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้', 'error');
+    })
+    .updatePasswordInSheet(currentLoginID, p1);
+}
+

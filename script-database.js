@@ -116,24 +116,26 @@ function initializeDataTable(data) {
 }
 
 function formatTime(data) {
-    if (!data || data === "" || data === "-") return "-";
+    if (!data || data === "" || data === "-" || data === "null") return "-";
+    
+    let timeStr = String(data);
 
-    // ถ้าเป็น Date Object (มาจากการที่ JS พยายามแปลงให้อัตโนมัติ)
-    if (data instanceof Date) {
-        return data.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    // ถ้าเจอรูปแบบที่มีตัว T
+    if (timeStr.includes('T')) {
+        // แยกส่วนวันที่กับเวลาออกจากกันด้วย T
+        let parts = timeStr.split('T'); 
+        if (parts.length > 1) {
+            // parts[1] จะเป็น "20:53:56.000Z"
+            // เราตัดเอาแค่ 5 ตัวแรก คือ "20:53"
+            return parts[1].substring(0, 5);
+        }
     }
 
-    // ถ้ามาเป็น ISO String (แบบที่มีตัว T เช่น 1899-12-29T18:05:56.000Z)
-    if (typeof data === 'string' && data.includes('T')) {
-        const timePart = data.split('T')[1]; 
-        return timePart.substring(0, 5); // ตัดเอา 18:05
+    // ถ้าหลุดมาเป็นรูปแบบ HH:mm:ss ปกติ
+    if (timeStr.includes(':')) {
+        let hms = timeStr.split(':');
+        return hms[0].padStart(2, '0') + ":" + hms[1].padStart(2, '0');
     }
 
-    // ถ้ามาเป็น String เวลาปกติอยู่แล้ว (เช่น 18:05:00) ให้ตัดเอาแค่ HH:mm
-    if (typeof data === 'string' && data.includes(':')) {
-        const parts = data.split(':');
-        return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}`;
-    }
-
-    return data;
+    return timeStr;
 }

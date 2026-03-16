@@ -96,20 +96,17 @@ function initializeDataTable(data) {
             { data: 'staining' },
             { data: 'fixing' },
             { data: 'buffer' },
-            { data: 'undiluted1' },
-            { data: 'diluted1' },
-            { data: 'diluted2' },
+            { data: 'undiluted1', render: formatTime },
+            { data: 'diluted1', render: formatTime },
+            { data: 'diluted2', render: formatTime },
             { data: 'recordedBy' },
             { 
                 data: null, 
-                className: 'text-center',
                 render: function(data, type, row) {
-                    return `<button class="btn btn-info btn-sm" onclick="showFullDetail(${row.rawRow})">
-                                <i class="bi bi-eye"></i>
-                            </button>`;
+                    return `<button class="btn btn-info btn-sm" onclick="showFullDetail(${row.rawRow})"><i class="bi bi-eye"></i></button>`;
                 }
             }
-        ],
+        ]
         language: {
             url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/th.json'
         },

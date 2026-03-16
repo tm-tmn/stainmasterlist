@@ -117,3 +117,34 @@ function initializeDataTable(data) {
         responsive: true
     });
 }
+
+// ฟังก์ชันช่วยจัดรูปแบบเวลา
+function formatTime(data) {
+    if (!data || data == "") return "-";
+    // ถ้าข้อมูลมาเป็น ISO String ให้ดึงเฉพาะ HH:mm
+    if (typeof data === 'string' && data.includes('T')) {
+        const timePart = data.split('T')[1]; // ได้ 18:05:56.000Z
+        return timePart.substring(0, 5);    // ตัดเอาแค่ 18:05
+    }
+    return data;
+}
+
+// ในตอนเรียกใช้ DataTable ให้แก้ส่วน columns:
+columns: [
+    { data: 'site' },
+    { data: 'sn' },
+    { data: 'brand' },
+    { data: 'staining' },
+    { data: 'fixing' },
+    { data: 'buffer' },
+    { data: 'undiluted1', render: formatTime }, // ใช้ฟังก์ชัน formatTime
+    { data: 'diluted1', render: formatTime },
+    { data: 'diluted2', render: formatTime },
+    { data: 'recordedBy' },
+    { 
+        data: null, 
+        render: function(data, type, row) {
+            return `<button class="btn btn-info btn-sm" onclick="showFullDetail(${row.rawRow})"><i class="bi bi-eye"></i></button>`;
+        }
+    }
+]

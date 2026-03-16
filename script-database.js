@@ -103,7 +103,7 @@ function initializeDataTable(data) {
                     return `<button class="btn btn-info btn-sm" onclick="showFullDetail(${row.rawRow})"><i class="bi bi-eye"></i></button>`;
                 }
             }
-        ],
+        ], // ปิด columns
         language: {
             url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/th.json'
         },
@@ -114,25 +114,5 @@ function initializeDataTable(data) {
 
 function formatTime(data) {
     if (!data || data === "" || data === "-" || data === "null") return "-";
-    
-    let timeStr = String(data);
-
-    // ถ้าเจอรูปแบบที่มีตัว T
-    if (timeStr.includes('T')) {
-        // แยกส่วนวันที่กับเวลาออกจากกันด้วย T
-        let parts = timeStr.split('T'); 
-        if (parts.length > 1) {
-            // parts[1] จะเป็น "20:53:56.000Z"
-            // เราตัดเอาแค่ 5 ตัวแรก คือ "20:53"
-            return parts[1].substring(0, 5);
-        }
-    }
-
-    // ถ้าหลุดมาเป็นรูปแบบ HH:mm:ss ปกติ
-    if (timeStr.includes(':')) {
-        let hms = timeStr.split(':');
-        return hms[0].padStart(2, '0') + ":" + hms[1].padStart(2, '0');
-    }
-
-    return timeStr;
+    return data; // ส่งค่าที่ได้จาก getDisplayValues (เช่น 1:00) ออกไปตรงๆ
 }

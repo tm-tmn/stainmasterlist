@@ -16,20 +16,17 @@ document.getElementById('loginBtn').addEventListener('click', async function() {
     loginBtn.disabled = true;
 
     try {
-        /* Tip: การส่งข้อมูลแบบ POST ไปยัง Google Apps Script มักติดปัญหา CORS 
-           วิธีแก้ที่ง่ายที่สุดคือส่งแบบ GET หรือจัดการผ่าน JSONP 
-           ในที่นี้จะใช้การ fetch ไปยัง URL ที่รับ Parameter ครับ
-        */
         const response = await fetch(`${WEB_APP_URL}?username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}`);
         const result = await response.json();
 
         if (result.status === "success") {
-            // ซ่อนหน้า Login และแสดงหน้ายินดีต้อนรับ
-            document.getElementById('loginSection').style.display = 'none';
-            document.getElementById('welcomeSection').style.display = 'block';
-            
-            document.getElementById('welcomeMsg').innerText = `สวัสดีคุณ ${result.name}`;
-            document.getElementById('deptMsg').innerText = `สังกัด: ${result.department}`;
+            // 1. เก็บข้อมูลผู้ใช้ไว้ใน Browser (session-based)
+            localStorage.setItem("userName", result.name);
+            localStorage.setItem("userDept", result.department);
+            localStorage.setItem("isLoggedIn", "true");
+
+            // 2. นำทางไปหน้า database.html
+            window.location.href = "database.html"; 
         } else {
             alert("ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง");
         }

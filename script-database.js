@@ -1,44 +1,4 @@
 
-
-// 2. ดึงข้อมูลจาก sessionStorage ที่เก็บไว้ตอน Login
-window.userName = sessionStorage.getItem('stain_user') || "Guest";
-window.userLogin = sessionStorage.getItem('login_id') || "";
-window.userDept = sessionStorage.getItem('stain_dept') || ""; 
-window.token = sessionStorage.getItem('stain_token') || "";
-
-$(document).ready(function() {
-    // ตรวจสอบเบื้องต้น: ถ้าไม่มี Token ให้ไล่กลับหน้า Login ทันที
-    if (!window.token || window.userName === "Guest") {
-        Swal.fire({
-            icon: 'error',
-            title: 'กรุณาเข้าสู่ระบบ',
-            text: 'คุณยังไม่ได้เข้าสู่ระบบ หรือ Session หมดอายุ',
-            confirmButtonText: 'ตกลง',
-            allowOutsideClick: false
-        }).then(() => {
-            window.location.href = 'index.html';
-        });
-        return;
-    }
-
-    // ถ้ามีข้อมูลครบ ให้เริ่มโหลดตาราง
-    initStainTable();
-    
-    // จัดการเมนูตามสิทธิ์
-    const manageUserMenu = document.getElementById('menu-manage-user');
-    // 🚩 เงื่อนไข: ถ้าไม่ใช่ Admin ให้ซ่อนเมนู Manage USER
-    if (window.userDept !== 'Admin') {
-        if (manageUserMenu) manageUserMenu.style.display = 'none';
-    }
-});
-
-
-// ฟังก์ชันสำหรับส่งกลับหน้า Login
-function redirectToLogin() {
-    sessionStorage.clear();
-    window.location.href = 'index.html';
-}
-
 /**
  * 🛡️ แทนที่ระบบตรวจสอบ Token แบบเดิม (google.script.run)
  * เป็นการเช็คผ่าน fetch (ถ้าต้องการตรวจสอบความถูกต้องของ Token กับ Server อีกครั้ง)

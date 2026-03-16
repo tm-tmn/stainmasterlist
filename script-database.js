@@ -118,33 +118,25 @@ function initializeDataTable(data) {
     });
 }
 
-// ฟังก์ชันช่วยจัดรูปแบบเวลา
 function formatTime(data) {
-    if (!data || data == "") return "-";
-    // ถ้าข้อมูลมาเป็น ISO String ให้ดึงเฉพาะ HH:mm
-    if (typeof data === 'string' && data.includes('T')) {
-        const timePart = data.split('T')[1]; // ได้ 18:05:56.000Z
-        return timePart.substring(0, 5);    // ตัดเอาแค่ 18:05
+    if (!data || data === "" || data === "-") return "-";
+
+    // ถ้าเป็น Date Object (มาจากการที่ JS พยายามแปลงให้อัตโนมัติ)
+    if (data instanceof Date) {
+        return data.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
     }
+
+    // ถ้ามาเป็น ISO String (แบบที่มีตัว T เช่น 1899-12-29T18:05:56.000Z)
+    if (typeof data === 'string' && data.includes('T')) {
+        const timePart = data.split('T')[1]; 
+        return timePart.substring(0, 5); // ตัดเอา 18:05
+    }
+
+    // ถ้ามาเป็น String เวลาปกติอยู่แล้ว (เช่น 18:05:00) ให้ตัดเอาแค่ HH:mm
+    if (typeof data === 'string' && data.includes(':')) {
+        const parts = data.split(':');
+        return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}`;
+    }
+
     return data;
 }
-
-// ในตอนเรียกใช้ DataTable ให้แก้ส่วน columns:
-columns: [
-    { data: 'site' },
-    { data: 'sn' },
-    { data: 'brand' },
-    { data: 'staining' },
-    { data: 'fixing' },
-    { data: 'buffer' },
-    { data: 'undiluted1', render: formatTime }, // ใช้ฟังก์ชัน formatTime
-    { data: 'diluted1', render: formatTime },
-    { data: 'diluted2', render: formatTime },
-    { data: 'recordedBy' },
-    { 
-        data: null, 
-        render: function(data, type, row) {
-            return `<button class="btn btn-info btn-sm" onclick="showFullDetail(${row.rawRow})"><i class="bi bi-eye"></i></button>`;
-        }
-    }
-]

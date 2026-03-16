@@ -68,7 +68,9 @@ function initializeDataTable(data) {
     }
     $('#stainTable').empty();
 
+    // สร้าง Header (เพิ่ม th เปล่าไว้รองรับคอลัมน์ time ที่ถูกซ่อน)
     let headerHtml = '<thead><tr>';
+    headerHtml += '<th></th>'; // เพิ่ม th เปล่าตัวที่ 1 สำหรับ time (Index 0)
     headerHtml += '<th>Site</th>';
     headerHtml += '<th>S/N</th>';
     headerHtml += '<th>Brand</th>';
@@ -87,7 +89,7 @@ function initializeDataTable(data) {
     $('#stainTable').DataTable({
         data: data,
         columns: [
-            { data: 'time', visible: false }, // คอลัมน์ Index 0: เก็บเวลาไว้เรียงแต่ซ่อนไว้
+            { data: 'time', visible: false }, // Index 0
             { data: 'site' },                 // Index 1
             { data: 'sn' },                   // Index 2
             { data: 'brand' },
@@ -105,16 +107,14 @@ function initializeDataTable(data) {
                 }
             }
         ],
-        // สั่งให้เรียงลำดับตามคอลัมน์ Index 0 (Time) จากมากไปน้อย (desc)
         order: [[0, 'desc']], 
-        language: {
+        responsive: true, // เติมคอมม่าตรงนี้ ***
+        language: {       // ตอนนี้ language จะทำงานได้ปกติ
             url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/th.json'
         },
-        pageLength: 10,
-        responsive: true
+        pageLength: 10
     });
 }
-
 
 function formatTime(data) {
     if (!data || data === "" || data === "-" || data === "null") return "-";

@@ -85,31 +85,36 @@ function initializeDataTable(data) {
     $('#stainTable').html(headerHtml);
 
     $('#stainTable').DataTable({
-        data: data,
-        columns: [
-            { data: 'site' },
-            { data: 'sn' },
-            { data: 'brand' },
-            { data: 'staining' },
-            { data: 'fixing' },
-            { data: 'buffer' },
-            { data: 'undiluted1', render: formatTime },
-            { data: 'diluted1', render: formatTime },
-            { data: 'diluted2', render: formatTime },
-            { data: 'recordedBy' },
-            { 
-                data: null, 
-                render: function(data, type, row) {
-                    return `<button class="btn btn-info btn-sm" onclick="showFullDetail(${row.rawRow})"><i class="bi bi-eye"></i></button>`;
-                }
+    data: data,
+    columns: [
+        { data: 'site' },
+        { data: 'sn' },
+        { data: 'brand' },
+        { data: 'staining' },
+        { data: 'fixing' },
+        { data: 'buffer' },
+        { data: 'undiluted1', render: formatTime },
+        { data: 'diluted1', render: formatTime },
+        { data: 'diluted2', render: formatTime },
+        { data: 'recordedBy' },
+        { 
+            data: null, 
+            render: function(data, type, row) {
+                return `<button class="btn btn-info btn-sm" onclick="showFullDetail(${row.rawRow})"><i class="bi bi-eye"></i></button>`;
             }
-        ], // ปิด columns
-        language: {
-            url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/th.json'
-        },
-        pageLength: 10,
-        responsive: true
-    });
+        }
+    ],
+    language: {
+        url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/th.json'
+    },
+    pageLength: 10,
+    responsive: true,
+    // --- เพิ่มส่วนนี้เพื่อจัดเรียงข้อมูล ---
+    order: [[10, 'desc']], // เลข 10 คือคอลัมน์ Details (ซึ่งมี rawRow อยู่ข้างใน) สั่งให้เรียงจากมากไปน้อย (desc)
+    columnDefs: [
+        { "targets": [10], "visible": true } // ให้คอลัมน์ที่ 10 ยังคงแสดงผลและใช้เรียงลำดับได้
+    ]
+});
 }
 
 function formatTime(data) {

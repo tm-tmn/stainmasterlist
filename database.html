@@ -102,27 +102,7 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <script>
-    // ดึงข้อมูลจาก localStorage มาเก็บในตัวแปรหน้าเว็บ
-    window.userName = localStorage.getItem('userName') || "Guest";
-    window.userDept = localStorage.getItem('userDept') || "";
-
-    document.addEventListener('DOMContentLoaded', function() {
-      // 1. แสดงผลชื่อและแผนก
-      document.getElementById('display-user-name').innerText = window.userName;
-      document.getElementById('display-user-dept').innerText = window.userDept;
-      
-      // 2. รูปโปรไฟล์ตัวอักษรแรก
-      if(window.userName !== "Guest") {
-          document.getElementById('user-avatar').innerText = window.userName.charAt(0).toUpperCase();
-      }
-
-      // 3. เปิด/ปิดเมนู Admin (เช็คจากแผนกตรงๆ)
-      const adminMenu = document.getElementById('admin-menu-item');
-      if (window.userDept === 'Admin' || window.userDept === 'Application Specialist') {
-          if (adminMenu) adminMenu.style.display = 'block';
-      }
-    });
-
+    
     function toggleSidebar() {
         document.getElementById('sidebar').classList.toggle('collapsed');
     }

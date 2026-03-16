@@ -87,3 +87,59 @@ function handleLogout() {
         }
     });
 }
+
+function initializeDataTable(data) {
+    // 1. ล้างตารางเดิมตามที่คุณเขียนไว้
+    if ($.fn.DataTable.isDataTable('#stainTable')) {
+        $('#stainTable').DataTable().destroy();
+    }
+    $('#stainTable').empty();
+
+    // 2. สร้าง Header ตามที่คุณกำหนด
+    let headerHtml = '<thead><tr>';
+    headerHtml += '<th>Site</th>';
+    headerHtml += '<th>S/N</th>';
+    headerHtml += '<th>Brand</th>';
+    headerHtml += '<th>Staining</th>';
+    headerHtml += '<th>Fixing</th>';
+    headerHtml += '<th>Buffer</th>';
+    headerHtml += '<th>Undiluted 1<br><small>(mm:ss)</small></th>';
+    headerHtml += '<th>Diluted 1<br><small>(mm:ss)</small></th>';
+    headerHtml += '<th>Diluted 2<br><small>(mm:ss)</small></th>';
+    headerHtml += '<th>Recorded By</th>';
+    headerHtml += '<th class="text-center">Details</th>';
+    headerHtml += '</tr></thead><tbody id="stainTableBody"></tbody>';
+    
+    $('#stainTable').html(headerHtml);
+
+    // 3. เริ่มต้น DataTable โดยผูก Data Property ให้ตรงกับตัวแปรใน Apps Script
+    $('#stainTable').DataTable({
+        data: data,
+        columns: [
+            { data: 'site' },
+            { data: 'sn' },
+            { data: 'brand' },
+            { data: 'staining' },
+            { data: 'fixing' },
+            { data: 'buffer' },
+            { data: 'undiluted1' },
+            { data: 'diluted1' },
+            { data: 'diluted2' },
+            { data: 'recordedBy' },
+            { 
+                data: null, 
+                className: 'text-center',
+                render: function(data, type, row) {
+                    return `<button class="btn btn-info btn-sm" onclick="showFullDetail(${row.rawRow})">
+                                <i class="bi bi-eye"></i>
+                            </button>`;
+                }
+            }
+        ],
+        language: {
+            url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/th.json'
+        },
+        pageLength: 10,
+        responsive: true
+    });
+}

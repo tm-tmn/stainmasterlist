@@ -85,35 +85,35 @@ function initializeDataTable(data) {
     $('#stainTable').html(headerHtml);
 
     $('#stainTable').DataTable({
-    data: data,
-    columns: [
-        { data: 'site' },
-        { data: 'sn' },
-        { data: 'brand' },
-        { data: 'staining' },
-        { data: 'fixing' },
-        { data: 'buffer' },
-        { data: 'undiluted1', render: formatTime },
-        { data: 'diluted1', render: formatTime },
-        { data: 'diluted2', render: formatTime },
-        { data: 'recordedBy' },
-        { 
-            data: null, 
-            render: function(data, type, row) {
-                return `<button class="btn btn-info btn-sm" onclick="showFullDetail(${row.rawRow})"><i class="bi bi-eye"></i></button>`;
+        data: data,
+        columns: [
+            { data: 'time', visible: false }, // คอลัมน์ Index 0: เก็บเวลาไว้เรียงแต่ซ่อนไว้
+            { data: 'site' },                 // Index 1
+            { data: 'sn' },                   // Index 2
+            { data: 'brand' },
+            { data: 'staining' },
+            { data: 'fixing' },
+            { data: 'buffer' },
+            { data: 'undiluted1', render: formatTime },
+            { data: 'diluted1', render: formatTime },
+            { data: 'diluted2', render: formatTime },
+            { data: 'recordedBy' },
+            { 
+                data: null, 
+                render: function(data, type, row) {
+                    return `<button class="btn btn-info btn-sm" onclick="showFullDetail(${row.rawRow})"><i class="bi bi-eye"></i></button>`;
+                }
             }
-        }
-    ],
-    language: {
-        url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/th.json'
-    },
-    pageLength: 10,
-    responsive: true,
-    order: [[10, 'aesc']],
-    columnDefs: [
-        { "targets": [10], "visible": true } 
-    ]
-});
+        ],
+        // สั่งให้เรียงลำดับตามคอลัมน์ Index 0 (Time) จากมากไปน้อย (desc)
+        order: [[0, 'desc']], 
+        language: {
+            url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/th.json'
+        },
+        pageLength: 10,
+        responsive: true
+    });
+}
 }
 
 function formatTime(data) {

@@ -84,9 +84,6 @@ function initializeDataTable(data) {
     headerHtml += '<th class="text-center">Details</th>';
     headerHtml += '</tr></thead><tbody id="stainTableBody"></tbody>';
     
-    $('#stainTable').html(headerHtml);
-
-    // 3. เริ่มต้น DataTable โดยผูก Data Property ให้ตรงกับตัวแปรใน Apps Script
     $('#stainTable').DataTable({
         data: data,
         columns: [
@@ -106,7 +103,7 @@ function initializeDataTable(data) {
                     return `<button class="btn btn-info btn-sm" onclick="showFullDetail(${row.rawRow})"><i class="bi bi-eye"></i></button>`;
                 }
             }
-        ]
+        ], // มีคอมม่าตรงนี้ (ปกติมีอยู่แล้ว)
         language: {
             url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/th.json'
         },

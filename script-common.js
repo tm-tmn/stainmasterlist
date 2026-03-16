@@ -1,6 +1,6 @@
 // 1. กำหนดค่าส่วนกลาง
 if (typeof window.API_URL === 'undefined') {
-    window.API_URL = "https://script.google.com/macros/s/AKfycbzQoIJWsoyZPEGqsiUSrMfxs2xaYNmS5POl6QAQyR303c42eoEaxTqzhYoofu_XZMJycQ/exec";
+    window.API_URL = "https://script.google.com/macros/s/AKfycbzDwkC2c8chRoIcgniD_6OL02lZR2jwDDZp_2Bo-zdWbAFC73nKqPot0cc4p3oEqdEg/exec";
 }
 
 let idleTimer; // ประกาศตัวแปรไว้ด้านนอก

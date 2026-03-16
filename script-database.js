@@ -68,30 +68,31 @@ function initializeDataTable(data) {
     }
     $('#stainTable').empty();
 
-    // สร้าง Header (เพิ่ม th เปล่าไว้รองรับคอลัมน์ time ที่ถูกซ่อน)
+    // 1. สร้าง Header: ต้องมี <th> ทั้งหมด 12 อันให้เท่ากับจำนวน columns ด้านล่าง
     let headerHtml = '<thead><tr>';
-    headerHtml += '<th></th>'; // เพิ่ม th เปล่าตัวที่ 1 สำหรับ time (Index 0)
-    headerHtml += '<th>Site</th>';
-    headerHtml += '<th>S/N</th>';
-    headerHtml += '<th>Brand</th>';
-    headerHtml += '<th>Staining</th>';
-    headerHtml += '<th>Fixing</th>';
-    headerHtml += '<th>Buffer</th>';
-    headerHtml += '<th>Undiluted 1<br><small>(mm:ss)</small></th>';
-    headerHtml += '<th>Diluted 1<br><small>(mm:ss)</small></th>';
-    headerHtml += '<th>Diluted 2<br><small>(mm:ss)</small></th>';
-    headerHtml += '<th>Recorded By</th>';
-    headerHtml += '<th class="text-center">Details</th>';
+    headerHtml += '<th></th>'; // 1. สำหรับ time (ซ่อนไว้)
+    headerHtml += '<th>Site</th>'; // 2
+    headerHtml += '<th>S/N</th>'; // 3
+    headerHtml += '<th>Brand</th>'; // 4
+    headerHtml += '<th>Staining</th>'; // 5
+    headerHtml += '<th>Fixing</th>'; // 6
+    headerHtml += '<th>Buffer</th>'; // 7
+    headerHtml += '<th>Undiluted 1<br><small>(mm:ss)</small></th>'; // 8
+    headerHtml += '<th>Diluted 1<br><small>(mm:ss)</small></th>'; // 9
+    headerHtml += '<th>Diluted 2<br><small>(mm:ss)</small></th>'; // 10
+    headerHtml += '<th>Recorded By</th>'; // 11
+    headerHtml += '<th class="text-center">Details</th>'; // 12
     headerHtml += '</tr></thead><tbody id="stainTableBody"></tbody>';
     
     $('#stainTable').html(headerHtml);
 
+    // 2. เรียกใช้งาน DataTable
     $('#stainTable').DataTable({
         data: data,
         columns: [
-            { data: 'time', visible: false }, // Index 0
-            { data: 'site' },                 // Index 1
-            { data: 'sn' },                   // Index 2
+            { data: 'time', visible: false }, // คอลัมน์ที่ 0: ใช้เรียงลำดับ
+            { data: 'site' },                 // คอลัมน์ที่ 1
+            { data: 'sn' },
             { data: 'brand' },
             { data: 'staining' },
             { data: 'fixing' },
@@ -102,14 +103,15 @@ function initializeDataTable(data) {
             { data: 'recordedBy' },
             { 
                 data: null, 
+                className: 'text-center',
                 render: function(data, type, row) {
                     return `<button class="btn btn-info btn-sm" onclick="showFullDetail(${row.rawRow})"><i class="bi bi-eye"></i></button>`;
                 }
             }
         ],
-        order: [[0, 'desc']], 
-        responsive: true, // เติมคอมม่าตรงนี้ ***
-        language: {       // ตอนนี้ language จะทำงานได้ปกติ
+        order: [[0, 'desc']], // เรียงตามคอลัมน์ที่ 0 (time) จากมากไปน้อย (ใหม่ไปเก่า)
+        responsive: true,
+        language: {
             url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/th.json'
         },
         pageLength: 10

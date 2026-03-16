@@ -1,5 +1,5 @@
 // เปลี่ยน URL นี้ให้เป็น Web App URL ของคุณที่ Deploy จาก Google Apps Script
-const WEB_APP_URL = "ใส่_WEB_APP_URL_ของคุณที่นี่";
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzDwkC2c8chRoIcgniD_6OL02lZR2jwDDZp_2Bo-zdWbAFC73nKqPot0cc4p3oEqdEg/exec";
 
 document.getElementById('loginBtn').addEventListener('click', async function() {
     const user = document.getElementById('user').value.trim();

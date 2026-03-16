@@ -109,15 +109,14 @@ function initializeDataTable(data) {
     },
     pageLength: 10,
     responsive: true,
-    // --- เพิ่มส่วนนี้เพื่อจัดเรียงข้อมูล ---
-    order: [[10, 'desc']], // เลข 10 คือคอลัมน์ Details (ซึ่งมี rawRow อยู่ข้างใน) สั่งให้เรียงจากมากไปน้อย (desc)
+    order: [[10, 'aesc']],
     columnDefs: [
-        { "targets": [10], "visible": true } // ให้คอลัมน์ที่ 10 ยังคงแสดงผลและใช้เรียงลำดับได้
+        { "targets": [10], "visible": true } 
     ]
 });
 }
 
 function formatTime(data) {
     if (!data || data === "" || data === "-" || data === "null") return "-";
-    return data; // ส่งค่าที่ได้จาก getDisplayValues (เช่น 1:00) ออกไปตรงๆ
+    return data; 
 }

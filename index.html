@@ -4,16 +4,15 @@
     <meta charset="UTF-8">
     <title>Redirecting...</title>
     <script type="text/javascript">
-        // เช็คว่าในเครื่องมีข้อมูลการ Login ค้างไว้ไหม
-        const isLoggedIn = localStorage.getItem("isLoggedIn");
-
-        if (isLoggedIn === "true") {
-            // ถ้า Login แล้ว ให้ไปหน้าตารางข้อมูล
-            window.location.href = "database.html";
-        } else {
-            // ถ้ายังไม่ได้ Login ให้ไปหน้า Login
-            window.location.href = "login.html";
-        }
+        // 🚩 1. ทำลายข้อมูลการ Login ทั้งหมดทันทีที่เข้ามาหน้านี้
+        localStorage.clear(); 
+        
+        // หากคุณมีการใช้ sessionStorage ด้วย (เผื่อไว้) ให้ล้างด้วย
+        sessionStorage.clear();
+    
+        // 🚩 2. หลังจากล้างเสร็จแล้ว ให้เตะไปหน้า login.html เท่านั้น
+        // เพราะตอนนี้ isLoggedIn จะไม่มีทางเป็น "true" แล้ว
+        window.location.href = "login.html";
     </script>
     
     <meta http-equiv="refresh" content="2; url=login.html">

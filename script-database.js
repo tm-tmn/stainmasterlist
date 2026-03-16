@@ -63,13 +63,11 @@ function handleLogout() {
 }
 
 function initializeDataTable(data) {
-    // 1. ล้างตารางเดิมตามที่คุณเขียนไว้
     if ($.fn.DataTable.isDataTable('#stainTable')) {
         $('#stainTable').DataTable().destroy();
     }
     $('#stainTable').empty();
 
-    // 2. สร้าง Header ตามที่คุณกำหนด
     let headerHtml = '<thead><tr>';
     headerHtml += '<th>Site</th>';
     headerHtml += '<th>S/N</th>';
@@ -84,6 +82,8 @@ function initializeDataTable(data) {
     headerHtml += '<th class="text-center">Details</th>';
     headerHtml += '</tr></thead><tbody id="stainTableBody"></tbody>';
     
+    $('#stainTable').html(headerHtml);
+
     $('#stainTable').DataTable({
         data: data,
         columns: [
@@ -103,7 +103,7 @@ function initializeDataTable(data) {
                     return `<button class="btn btn-info btn-sm" onclick="showFullDetail(${row.rawRow})"><i class="bi bi-eye"></i></button>`;
                 }
             }
-        ], // มีคอมม่าตรงนี้ (ปกติมีอยู่แล้ว)
+        ],
         language: {
             url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/th.json'
         },

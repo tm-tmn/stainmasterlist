@@ -114,7 +114,7 @@ function initializeDataTable(data) {
         responsive: true
     });
 }
-}
+
 
 function formatTime(data) {
     if (!data || data === "" || data === "-" || data === "null") return "-";

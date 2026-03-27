@@ -1,0 +1,915 @@
+  @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Poppins:wght@400;600;700;800&display=swap');
+
+  :root {
+    --primary-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+    --luxury-blue: #1e293b;
+    --accent-color: #38bdf8;
+    --sidebar-bg: #0f172a;
+    --text-bright: #ffffff;
+    --text-dim: rgba(255, 255, 255, 0.7);
+    --table-header: rgba(30, 41, 59, 0.95);
+    /* เพิ่มส่วนควบคุมขนาด Sidebar */
+    --sidebar-width: 260px;
+    --sidebar-collapsed-width: 80px;
+    
+    /* เพิ่มตัวแปรสีสำหรับความ Modern */
+    --save-btn-gradient: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
+  }
+
+  /* --- Keyframes (รักษาความเดิมของคุณไว้) --- */
+  @keyframes glow-pulse {
+    0% { filter: drop-shadow(0 0 2px rgba(56, 189, 248, 0.6)); transform: scale(1); }
+    50% { filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.9)); transform: scale(1.05); }
+    100% { filter: drop-shadow(0 0 2px rgba(56, 189, 248, 0.6)); transform: scale(1); }
+  }
+
+  /* --- Layout Base --- */
+  body {
+    background-color: #f8fafc; /* ปรับให้สว่างขึ้นนิดนึงสไตล์ Modern */
+    font-family: 'Sarabun', sans-serif;
+    margin: 0;
+  }
+
+  .main-wrapper {
+    display: flex;
+    min-height: 100vh;
+    align-items: stretch;
+  }
+
+  .content-area {
+    background-color: #f8fafc;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-grow: 1;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* --- SIDEBAR (คงเดิมทุกประการ) --- */
+  #sidebar {
+    width: var(--sidebar-width);
+    background: var(--sidebar-bg) !important;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    z-index: 1000;
+  }
+
+  #sidebar.collapsed {
+    width: var(--sidebar-collapsed-width);
+  }
+
+  .sidebar-header {
+    padding: 15px;
+    height: 70px;
+    display: flex;
+    align-items: center;
+  }
+
+  .sidebar-brand {
+    color: var(--text-bright) !important;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+  }
+
+  .sidebar-brand i { color: var(--accent-color) !important; margin-right: 12px; }
+  #sidebar.collapsed .sidebar-brand span { display: none; }
+
+  .user-profile-section {
+    padding: 25px 15px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .user-avatar-circle {
+    width: 85px;
+    height: 85px;
+    background: var(--primary-gradient) !important;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 700;
+    margin: 0 auto 15px auto;
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3);
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s;
+  }
+
+  #sidebar.collapsed .user-avatar-circle {
+    width: 45px;
+    height: 45px;
+    font-size: 1.2rem;
+    margin-bottom: 0;
+  }
+
+  .user-details-text .user-name {
+    color: var(--text-bright) !important;
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin: 0;
+  }
+
+  .user-details-text .user-role {
+    color: var(--accent-color) !important;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 0;
+  }
+
+  #sidebar.collapsed .user-details-text { display: none; }
+
+  /* --- Navigation --- */
+  #sidebar .nav-link {
+    color: var(--text-dim) !important;
+    padding: 12px 25px;
+    display: flex;
+    align-items: center;
+    transition: 0.3s;
+    font-size: 0.95rem;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+
+  #sidebar .nav-link i {
+    font-size: 1.2rem;
+    min-width: 35px;
+    color: var(--accent-color) !important;
+  }
+
+  #sidebar .nav-link:hover, 
+  #sidebar .nav-link.active {
+    color: #fff !important;
+    background: rgba(59, 130, 246, 0.1);
+  }
+
+  #sidebar .nav-link.active {
+    background: var(--primary-gradient) !important;
+    border-radius: 10px;
+    margin: 4px 12px;
+  }
+
+  #sidebar .nav-link.active i { color: #fff !important; }
+
+  #sidebar.collapsed .nav-link { justify-content: center; padding: 12px 0; }
+  #sidebar.collapsed .nav-link i { min-width: 0; margin-right: 0; }
+  #sidebar.collapsed .nav-link span,
+  #sidebar.collapsed .nav-group-title { display: none; }
+
+  .nav-group-title {
+    color: rgba(255, 255, 255, 0.3) !important;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    padding: 25px 25px 10px 25px !important;
+  }
+
+  /* --- Admin Header Banner (คงเดิม) --- */
+  .admin-header-banner {
+    background: var(--luxury-blue);
+    border-bottom: 2px solid var(--accent-color);
+    width: 100%;
+    min-height: 70px;
+    display: flex;
+    align-items: center;
+    padding: 0;
+    color: white;
+  }
+
+  .stain-title-main i {
+    color: var(--accent-color) !important;
+    font-size: 2rem;
+    animation: glow-pulse 2s infinite ease-in-out;
+  }
+
+  /* --- Datatable Main Table --- */
+  .admin-card {
+    border-radius: 20px;
+    border: none;
+    background: white;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.08) !important; /* ปรับเงาให้นุ่มนวลขึ้น */
+    margin: 20px;
+    padding: 20px;
+  }
+
+  /* --- ปรับแต่งกรอบนอกของ DataTable --- */
+  .dataTables_wrapper {
+    padding: 20px 0;
+  }
+
+/* --- หัวตาราง (Thead) --- */
+  #stainTable thead th {
+    background: var(--luxury-blue) !important; /* พื้นหลังสีน้ำเงินเข้มเข้ม */
+    color: var(--accent-color) !important; /* ตัวหนังสือสีฟ้าสว่าง */
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border: none !important;
+    padding: 18px 12px !important;
+    text-align: center !important;
+    vertical-align: middle;
+    padding-right: 12px !important;
+  }
+
+  /* จัดการกับ Sorting Icon ของ DataTables ให้ไม่ดันข้อความ */
+  table.dataTable thead .sorting::after,
+  table.dataTable thead .sorting_asc::after,
+  table.dataTable thead .sorting_desc::after {
+      display: none !important; /* ซ่อนไอคอนแบบเก่าถ้ามันเกะกะ */
+  }
+  /* หากยังต้องการไอคอน Sorting ให้ใช้การจัดตำแหน่งแบบ Absolute เพื่อไม่ให้กินที่ข้อความ */
+  table.dataTable thead th.sorting, 
+  table.dataTable thead th.sorting_asc, 
+  table.dataTable thead th.sorting_desc {
+      background-image: none !important;
+      padding-left: 15px !important;
+      padding-right: 15px !important;
+  }
+
+  /* --- ตัวตาราง (Tbody) --- */
+  #stainTable tbody td {
+    padding: 15px 12px !important;
+    text-align: center !important;    /* กึ่งกลางแนวนอน */
+    vertical-align: middle;
+    color: #334155; /* สีตัวอักษร Slate */
+    border-bottom: 1px solid #f1f5f9 !important; /* เส้นแบ่งแถวบางๆ */
+    font-size: 0.95rem;
+    transition: all 0.2s;
+  }
+
+  #stainTable tbody td:first-child {
+    text-align: left !important;
+    padding-left: 20px !important;
+  }
+
+  /* --- เอฟเฟกต์ตอน Hover แถว --- */
+  #stainTable tbody tr:hover {
+    background-color: rgba(99, 102, 241, 0.04) !important; /* สีม่วงอ่อนๆ จางๆ */
+    transform: scale(1.002); /* ขยายใหญ่ขึ้นนิดเดียวให้ดูมีมิติ */
+    box-shadow: inset 4px 0 0 var(--accent-color); /* มีแถบสีฟ้าโผล่ด้านหน้าแถว */
+  }
+
+  /* --- การตกแต่งส่วนค้นหาและจำนวนหน้า (DataTables Controls) --- */
+  .dataTables_length select, 
+  .dataTables_filter input {
+    border: 1.5px solid #e2e8f0 !important;
+    border-radius: 10px !important;
+    padding: 6px 12px !important;
+    outline: none !important;
+    transition: all 0.3s;
+  }
+
+  .dataTables_filter input:focus {
+    border-color: #6366f1 !important;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important;
+  }
+
+  /* --- ปรับแต่ง Pagination (ปุ่มเปลี่ยนหน้า) --- */
+  .dataTables_paginate .paginate_button.current {
+    background: var(--primary-gradient) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+  }
+
+  .dataTables_paginate .paginate_button:hover {
+    background: #f1f5f9 !important;
+    border-radius: 8px !important;
+  }
+
+
+  /* --- Action Buttons (คงเดิม) --- */
+  .btn-action-custom {
+    border: none; border-radius: 10px; padding: 6px 14px;
+    font-weight: 600; display: inline-flex; align-items: center;
+    gap: 6px; color: white !important; transition: 0.3s;
+    font-size: 0.85rem;
+    text-decoration: none;
+  }
+  .btn-view {
+    background: linear-gradient(135deg, #0ea5e9, #2563eb) !important;
+    border: none !important;
+    border-radius: 8px !important;
+    padding: 5px 15px !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+  }
+  .btn-view:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
+  }
+  .btn-edit { background: linear-gradient(135deg, #f59e0b, #d97706); }
+  .btn-delete { background: linear-gradient(135deg, #ef4444, #dc2626); }
+  .btn-action-custom:hover { transform: translateY(-2px); filter: brightness(1.1); }
+
+  #detailModal .modal-content { 
+    border-radius: 24px !important;
+    overflow: hidden !important;
+    /* เพิ่มเส้นขอบให้ modal-content เอง เพื่อป้องกันตารางภายในทับเส้นขอบ */
+    border: 1px solid #e2e8f0 !important; 
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+  #detailModal .modal-header {
+    background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%) !important;
+    color: white;
+    /* บังคับมุมบนให้โค้งรับกับ modal-content */
+    border-top-left-radius: 24px !important;
+    border-top-right-radius: 24px !important;
+    border-bottom: none !important;
+    padding: 1.2rem 2rem;
+}
+
+/* ปรับแต่งตารางภายในเพื่อให้ไม่เบียดขอบจนเกินไป */
+#detailModal .modal-body {
+    padding: 1.5rem; /* เพิ่มพื้นที่หายใจรอบตาราง */
+}
+
+#detailModal .table-responsive {
+    border-radius: 12px;
+    overflow: hidden;
+    /* เพิ่มเส้นขอบรอบตารางด้านในเพื่อความชัดเจน */
+    border: 1px solid #e2e8f0 !important; 
+}
+
+#detailModal .btn-close {
+    filter: brightness(0) invert(1); 
+    opacity: 0.8;
+    transition: all 0.2s;
+}
+
+#detailModal .btn-close:hover {
+    opacity: 1;
+    transform: rotate(90deg);
+}
+
+/* ปรับแต่งตารางภายในหน้ารายละเอียด */
+#detailModal .table {
+    margin-bottom: 0;
+}
+
+/* ปรับแต่ง Cell ตารางภายในหน้ารายละเอียด */
+#detailModal .table td {
+    padding: 12px 15px !important;
+    border-bottom: 1px solid #0f0f0f !important; /* เส้นแบ่งแถวแนวนอน */
+    border-right: 1px solid #0f0f0f !important;  /* เส้นแบ่งคอลัมน์แนวตั้ง */
+}
+
+/* เน้นหัวข้อด้านซ้าย (คอลัมน์แรก) */
+#detailModal .table td:first-child {
+    background-color: #f8fafc;
+    color: #64748b;
+    font-weight: 600;
+    width: 40%;
+    /* ไม่ต้องใส่ border-right: none เพราะเราต้องการเส้นแบ่งตรงกลาง */
+}
+
+  /* --- Luxury Submit Button Style --- */
+  .btn-submit {
+    width: 100% !important;
+    background: var(--primary-gradient) !important;
+    color: white !important;
+    padding: 16px 32px !important;
+    border: none !important;
+    border-radius: 16px !important;
+    font-family: 'Poppins', sans-serif !important;
+    font-weight: 600 !important;
+    font-size: 1.1rem !important;
+    letter-spacing: 0.5px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+    box-shadow: 0 10px 20px -5px rgba(168, 85, 247, 0.4) !important;
+    position: relative !important;
+    overflow: hidden !important;
+    text-decoration: none !important;
+  }
+
+  .btn-submit:hover {
+    transform: translateY(-3px) !important;
+    box-shadow: 0 15px 30px -5px rgba(168, 85, 247, 0.6) !important;
+    filter: brightness(1.1) !important;
+  }
+
+  .btn-submit:active {
+    transform: translateY(1px) !important;
+    box-shadow: 0 5px 10px -2px rgba(168, 85, 247, 0.4) !important;
+  }
+
+  /* เอฟเฟกต์แสงวิ่งผ่านปุ่ม (Shine Effect) */
+  .btn-submit::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -60%;
+    width: 20%;
+    height: 200%;
+    background: rgba(255, 255, 255, 0.2);
+    transform: rotate(30deg);
+    transition: all 0.6s ease;
+  }
+
+  .btn-submit:hover::after {
+    left: 120%;
+  }
+
+  /* ตกแต่ง Icon ในปุ่ม */
+  .btn-submit i {
+    font-size: 1.3rem !important;
+    transition: transform 0.3s ease !important;
+    line-height: 0;
+  }
+
+  .btn-submit:hover i {
+    transform: scale(1.2) rotate(-10deg) !important;
+  }
+
+  /* ส่วนประกอบอื่นๆ (คงเดิม) */
+  #detailModal .form-control, .form-select {
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    padding: 0.75rem 1rem; /* เพิ่มความหนาให้ช่องดูไม่อึดอัด */
+    background-color: #f8fafc; /* ใช้สีพื้นหลังอ่อนๆ เพื่อให้ตัดกับสีขาวของ Card */
+    transition: all 0.2s ease-in-out;
+    font-size: 0.95rem;
+    color: #334155;
+}
+
+  #detailModal .form-control:focus, 
+  #detailModal .form-select:focus {
+      background-color: #ffffff;
+      border-color: #6366f1;
+      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1); /* แสงฟุ้งรอบช่อง Input เมื่อกด */
+      outline: none;
+  }
+
+  /* ค้นหา #detailModal .section-header แล้วปรับตามนี้ */
+  #detailModal h5.section-header {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #1e293b;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #f1f5f9; /* เปลี่ยนจากเส้นตั้งด้านข้างเป็นเส้นขีดล่างบางๆ */
+  }
+/* ตกแต่ง Icon ให้ดูแพงขึ้น */
+  #detailModal h5.section-header i {
+      color: #6366f1; /* สีม่วงน้ำเงินตาม Theme หลัก */
+      background: rgba(99, 102, 241, 0.1); /* วงกลมสีจางๆ ด้านหลัง Icon */
+      width: 35px;
+      height: 35px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px; /* ขอบโค้งมนแบบ Soft UI */
+      font-size: 1rem;
+  }
+
+  /* เพิ่ม Class ใหม่นี้เข้าไปในไฟล์ CSS */
+  .info-group-card {
+      background: #ffffff;
+      border: 1px solid #f1f5f9;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 25px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  }
+
+  /* ปรับแต่งกรอบให้รองรับระบบ Grid เดิมของคุณ */
+  .info-card-wrapper {
+      background: #ffffff; 
+      border: 1px solid #e2e8f0; /* สีเส้นขอบทั่วไปที่ดูสะอาดตา */
+      border-radius: 16px;
+      padding: 20px 10px; /* ลด Padding ซ้ายขวาลงเพื่อให้มีพื้นที่สำหรับ 2 คอลัมน์ */
+      margin-bottom: 25px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  }
+
+  /* ปรับแต่งเส้นแบ่งระหว่างปุ่ม Tab กับเนื้อหา */
+  .card-header.border-bottom {
+    border-bottom: 1px solid #f1f5f9 !important;
+  }
+
+  /* ปรับแต่งช่อง Input/Select ภายใน Tab ให้มีขอบชัดขึ้น */
+  .tab-pane .custom-select, 
+  .tab-pane .custom-input {
+    border: 1px solid #cbd5e1 !important; /* เส้นขอบช่องกรอกให้เข้มขึ้นนิดนึง */
+  }
+
+  /* รักษาระยะห่างของแถว */
+  .info-card-wrapper .row {
+      margin-left: 0;
+      margin-right: 0;
+  }
+
+  
+  #detailModal .table td:last-child {
+    font-family: 'Poppins', sans-serif !important;
+    color: #0f172a !important;
+    font-weight: 700 !important;
+    border-left: 4px solid var(--accent-color) !important;
+    border-right: none !important;
+  }
+
+#detailModal .table tr:last-child td {
+    border-bottom: none !important;
+}
+  .dataTables_filter input {
+    border: 2px solid #e2e8f0 !important;
+    border-radius: 10px !important;
+  }
+
+  .badge-user {
+    background: rgba(99, 102, 241, 0.1);
+    color: #4f46e5;
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-weight: 600;
+    font-size: 0.8rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+
+  /* --- Custom Style สำหรับหน้า Edit Form --- */
+  
+  /* ปรับแต่งกลุ่ม Input ให้มีไอคอนสวยๆ */
+  .custom-input-group {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    transition: all 0.3s ease;
+  }
+
+  .custom-input-group .input-group-text {
+    background-color: #ffffff !important;
+    border: 1px solid #e2e8f0;
+    border-right: none;
+    color: #6366f1; /* สีม่วงตาม Theme */
+    padding-left: 15px;
+  }
+
+  .custom-input-group .form-control {
+    border: 1px solid #e2e8f0;
+    border-left: none;
+    padding: 10px 15px;
+    font-size: 0.95rem;
+  }
+
+  .custom-input-group:focus-within {
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    transform: translateY(-1px);
+  }
+
+  .custom-input-group .form-control:focus {
+    border-color: #e2e8f0;
+    box-shadow: none;
+  }
+
+  /* ปรับ Label ให้ดูเป็นมืออาชีพ */
+  label.form-label {
+    font-weight: 600;
+    color: #475569;
+    font-size: 0.85rem;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+  }
+
+  /* ปรับแต่ง Dropdown (Select) */
+  .custom-select {
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+    padding: 10px 15px !important;
+    background-color: #ffffff !important;
+    font-size: 0.95rem !important;
+    transition: all 0.3s ease !important;
+    cursor: pointer;
+  }
+
+  .custom-select:focus {
+    border-color: #6366f1 !important;
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1) !important;
+  }
+
+  /* ปรับแต่งช่องกรอกตัวเลข (Input Number) */
+  .custom-input {
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+    padding: 10px 15px !important;
+    font-size: 0.95rem !important;
+    transition: all 0.3s ease !important;
+  }
+
+  .custom-input:focus {
+    border-color: #6366f1 !important;
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1) !important;
+    background-color: #fff !important;
+  }
+
+  /* ปรับแต่งไอคอนลูกศรใน Select ให้ดูสวยขึ้น */
+  .form-select {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important;
+  }
+
+  /* เน้นช่อง Single/Double Staining ให้ดูพิเศษกว่าช่องอื่น */
+  .highlight-select {
+    border: 2px solid rgba(99, 102, 241, 0.4) !important; /* สม่ำเสมอกับธีมม่วงน้ำเงิน */
+    background-color: rgba(99, 102, 241, 0.02) !important;
+  }
+
+  .highlight-select:focus {
+    border-color: #6366f1 !important;
+    background-color: #fff !important;
+  }
+
+  /* ปรับแต่งไอคอนใน Label ให้สีเข้ากับเนื้อหา */
+  .section-header i.bi-droplet-fill {
+    color: #6366f1; /* สีหยดน้ำม่วงน้ำเงิน */
+  }
+
+  /* ปรับแต่งหัวข้อและขอบสำหรับ Stain 2 */
+  .text-indigo {
+    color: #4f46e5 !important;
+  }
+
+  .border-indigo {
+    border: 2px solid rgba(79, 70, 229, 0.3) !important;
+    background-color: rgba(79, 70, 229, 0.01) !important;
+  }
+
+  .border-indigo:focus {
+    border-color: #4f46e5 !important;
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1) !important;
+  }
+
+  /* ปรับแต่งปุ่ม Tab */
+  .custom-tab {
+    border: none !important;
+    border-radius: 10px !important;
+    color: #64748b !important;
+    font-weight: 600 !important;
+    font-size: 0.85rem !important;
+    padding: 8px 16px !important;
+    margin-right: 5px !important;
+    transition: all 0.3s ease !important;
+  }
+
+  /* สไตล์เมื่อ Tab ถูกเลือก (Active) */
+  .custom-tab.active {
+    background: var(--primary-gradient) !important;
+    color: white !important;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25) !important;
+  }
+
+  /* สไตล์เมื่อเอาเมาส์ไปชี้ (Hover) */
+  .custom-tab:not(.active):hover {
+    background-color: #f1f5f9 !important;
+    color: #1e293b !important;
+  }
+
+  /* ปรับแต่งกลุ่มปุ่ม +/- */
+  .custom-stepper {
+    width: 130px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  }
+
+  .btn-stepper {
+    background-color: #f8fafc !important;
+    border: none !important;
+    color: #6366f1 !important;
+    font-weight: bold !important;
+    width: 40px !important;
+    transition: all 0.2s ease;
+  }
+
+  .btn-stepper:hover {
+    background-color: #6366f1 !important;
+    color: white !important;
+  }
+
+  .stepper-input {
+    border: none !important;
+    border-left: 1px solid #f1f5f9 !important;
+    border-right: 1px solid #f1f5f9 !important;
+    font-weight: 700 !important;
+    color: #1e293b !important;
+    background-color: #fff !important;
+    text-align: center !important;
+    font-size: 1rem !important;
+  }
+
+  /* ปรับช่องห่างในแนวนอน */
+  .custom-time-wrapper {
+    background: #fff;
+    padding: 8px 15px;
+    border-radius: 15px;
+    border: 1px dashed #cbd5e1;
+  }
+
+  /* ปรับแต่งกรอบครอบกลุ่มปุ่ม +/- (Stepper Wrapper) */
+  .custom-time-picker {
+    background-color: #ffffff;
+    padding: 10px 15px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0; /* เส้นกรอบจางๆ */
+    display: inline-flex;
+    align-items: center;
+  }
+
+  /* คุมความสูงและสไตล์ของ Stepper ให้เท่ากับ Select Box ใน Addition */
+  .custom-time-stepper .input-group {
+      border-radius: 12px !important;
+      overflow: hidden;
+      border: 1px solid #dee2e6;
+      background-color: #fff;
+  }
+
+  .custom-time-stepper .btn-primary {
+      background-color: #4f46e5 !important; /* สี Indigo ให้เข้ากับหัวข้อ */
+      border: none !important;
+      width: 38px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+  }
+
+  .custom-time-stepper .btn-primary:hover {
+      background-color: #4338ca !important;
+      filter: brightness(1.1);
+  }
+  .custom-time-stepper input.form-control {
+      border: none !important;
+      font-weight: 600 !important;
+      font-size: 0.95rem;
+      color: #334155;
+  }
+
+  /* จุดไข่ปลาคั่นเวลา */
+  .time-separator {
+      font-weight: bold;
+      color: #64748b;
+      padding: 0 4px;
+  }
+
+  /* --- ส่วนแก้ไขพิเศษ: บังคับ Tabs และ Stepper ของ Replacement ให้เหมือน Addition --- */
+
+  #replacementTabs, .card-header-tabs {
+      gap: 8px;
+      padding: 0 10px;
+      border: none !important;
+  }
+
+  /* บังคับให้ทั้ง nav-tabs และ nav-pills ในหน้านี้มีหน้าตาเดียวกัน */
+  .card-header-tabs .nav-link, 
+  #replacementTabs .nav-link {
+      border: none !important;
+      border-radius: 12px !important; /* ความมนแบบ Soft UI */
+      font-weight: 600 !important;
+      font-size: 0.85rem !important;
+      color: #64748b !important;
+      padding: 10px 20px !important;
+      background-color: transparent !important;
+      transition: all 0.3s ease;
+  }
+
+  /* สถานะ Active: สีม่วง Indigo */
+  .card-header-tabs .nav-link.active,
+  #replacementTabs .nav-link.active {
+      background: var(--primary-gradient) !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3) !important;
+  }
+
+  #replacementTabs .nav-link:hover:not(.active) {
+      background-color: #f1f5f9;
+      color: #334155;
+  }
+
+  /* บังคับ Stepper ของ Replacement ให้สูงเท่า Select Box */
+  .custom-time-stepper-container {
+      background-color: #ffffff;
+      padding: 8px 12px;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 48px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  }
+
+  /* --- ส่วนของผู้บันทึก (Recorded By Section) --- */
+
+  /* --- แก้ไขตัว Card และ Select Box ให้ดูละมุนขึ้นตามภาพ --- */
+  .recorded-by-card {
+      background-color: #f8faff !important; /* ปรับสีฟ้าให้ซอฟต์ลง */
+      border: 1px solid #e2e8f0 !important;
+      border-radius: 16px !important;
+  }
+
+  #recordedBy option[value="None"] {
+    display: none !important;
+  }
+
+  /* ปรับแต่ง Label ยืนยันชื่อ */
+  .recorded-by-card .form-label {
+      color: #6366f1 !important;
+      font-weight: 600 !important;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+  }
+
+  /* แก้ไข Input Group ให้ Icon กับ Select เชื่อมกันเนียนๆ */
+  .recorded-by-card .input-group {
+      border: 1px solid #6366f1 !important; /* ใช้เส้นสีม่วง Indigo บางๆ */
+      border-radius: 12px !important;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.08) !important;
+  }
+
+  .recorded-by-card .input-group-text {
+      background-color: #f8faff !important;
+      border: none !important;
+      color: #6366f1 !important;
+      padding: 0 15px !important;
+  }
+
+  .recorded-by-card .form-select {
+      border: none !important; /* เอาขอบเดิมออกเพื่อไม่ให้ทับกับกลุ่ม */
+      background-color: #ffffff !important;
+      height: 48px !important;
+      font-weight: 500 !important;
+  }
+
+  /* --- Custom Solid Red PDF Button --- */
+  .btn-pdf-custom {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important; /* สีแดงคงที่ */
+      border: none !important;
+      color: white !important;
+      border-radius: 10px !important;
+      font-weight: 600 !important;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 10px rgba(220, 38, 38, 0.2) !important;
+  }
+
+  /* ลบ Effect การสลับสีเมื่อ Hover แต่ให้ปุ่มขยับนิดหน่อยพอให้รู้ว่ากดได้ */
+  .btn-pdf-custom:hover {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important; /* สีเดิม */
+      transform: translateY(-1px); /* ขยับขึ้นเล็กน้อย */
+      box-shadow: 0 6px 15px rgba(220, 38, 38, 0.3) !important;
+      filter: brightness(1.05); /* สว่างขึ้นนิดเดียวจริงๆ */
+  }
+
+  .btn-pdf-custom:active {
+      transform: translateY(0);
+  }
+
+  /* สไตล์สำหรับครอบชื่อและเวลาในตาราง */
+  .recorded-column-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+  }
+
+  .timestamp-text {
+      font-size: 0.7rem !important;
+      color: #94a3b8 !important; /* สีเทาอ่อนสไตล์ Modern */
+      font-family: 'Poppins', sans-serif;
+  }
+
+  /* บังคับ Icon Header ให้เท่ากันเป๊ะ (กรณีมีคลาส me-2 ติดมา) */
+  .section-header i.bi-person-check-fill {
+      font-size: 1.2rem !important;
+  }
+
+  /* --- Toggle & Scrollbar (คงเดิม) --- */
+  .btn-toggle { cursor: pointer; color: white; transition: 0.3s; }
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }

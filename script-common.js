@@ -47,12 +47,12 @@ function clearSession() {
 // --- Redirect ---
 function redirectToLogin() {
   setTimeout(() => {
-    window.location.href = "/index.html"; 
+    window.location.href = "./index.html"; 
   }, 100);
 }
 
 function redirectToMain() {
-  window.location.href = "/datatable.html";
+  window.location.href = "./datatable.html";
 }
 
 // --- Logout ---

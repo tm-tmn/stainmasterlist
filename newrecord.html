@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>New Record | Stain System</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+
+  <!-- ✅ แทน <?!= include('CSSdatatable') ?> และ <?!= include('CSS') ?> -->
+  <link rel="stylesheet" href="style-datatable.css">
+  <link rel="stylesheet" href="style-newrecord.css">
+</head>
+<body>
+
+  <div class="main-wrapper">
+
+    <!-- Sidebar -->
+    <nav id="sidebar" class="sidebar-wrapper shadow">
+      <div class="sidebar-header d-flex align-items-center justify-content-between">
+        <div class="sidebar-brand">
+          <i class="bi bi-cpu-fill text-info"></i>
+          <span class="ms-2">MENU</span>
+        </div>
+        <div id="sidebar-toggle" onclick="toggleSidebar()" class="btn-toggle">
+          <i class="bi bi-chevron-double-right toggle-icon"></i>
+        </div>
+      </div>
+
+      <div class="user-profile-section">
+        <div class="user-avatar-circle" id="userAvatar">?</div>
+        <div class="user-details-text">
+          <p class="user-name" id="displayUserName">-</p>
+          <span class="user-role" id="displayUserDept">-</span>
+        </div>
+      </div>
+
+      <div class="sidebar-content mt-3">
+        <ul class="nav flex-column">
+          <li class="nav-item">
+            <!-- ✅ แทน href="<?= scriptUrl ?>?page=main&..." -->
+            <a class="nav-link" href="datatable.html">
+              <i class="bi bi-database-fill"></i> <span>Database</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link active" href="newrecord.html">
+              <i class="bi bi-plus-square-fill"></i> <span>New Record</span>
+            </a>
+          </li>
+          <li class="nav-item" id="admin-menu-item" style="display: none;">
+            <a class="nav-link" href="admin.html">
+              <i class="bi bi-gear-fill"></i> <span>Admin Setup</span>
+            </a>
+          </li>
+        </ul>
+
+        <div class="sidebar-content mt-3">
+          <ul class="nav flex-column">
+            <li class="nav-group-title mt-4 px-4 small text-muted text-uppercase text-nowrap"><span>System</span></li>
+            <li class="nav-item">
+              <div class="nav-link" onclick="openChangePasswordModal()" style="cursor: pointer;">
+                <i class="bi bi-shield-lock-fill"></i> <span>Change Password</span>
+              </div>
+            </li>
+            <li class="nav-item">
+              <div class="nav-link text-danger" onclick="handleLogout()" style="cursor: pointer;">
+                <i class="bi bi-power"></i> <span>Sign Out</span>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+    <!-- /Sidebar -->
+
+    <!-- Change Password Modal -->
+    <div class="modal fade" id="selfChangePassModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0" style="border-radius: 15px;">
+          <div class="modal-header bg-dark text-white" style="border-radius: 15px 15px 0 0;">
+            <h5 class="modal-title"><i class="bi bi-shield-lock-fill me-2"></i> Change Your Password</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body p-4">
+            <div class="mb-3">
+              <label class="form-label small fw-bold">รหัสผ่านใหม่</label>
+              <div class="input-group">
+                <input type="password" id="self-new-pass" class="form-control" placeholder="New Password">
+                <button class="btn btn-outline-secondary" type="button" onclick="toggleSelfPassword('self-new-pass', this)">
+                  <i class="bi bi-eye-fill"></i>
+                </button>
+              </div>
+            </div>
+            <div class="mb-4">
+              <label class="form-label small fw-bold">ยืนยันรหัสผ่านใหม่</label>
+              <div class="input-group">
+                <input type="password" id="self-confirm-pass" class="form-control" placeholder="Confirm Password">
+                <button class="btn btn-outline-secondary" type="button" onclick="toggleSelfPassword('self-confirm-pass', this)">
+                  <i class="bi bi-eye-fill"></i>
+                </button>
+              </div>
+            </div>
+            <div class="d-grid">
+              <button type="button" class="btn btn-primary py-2 fw-bold" onclick="submitSelfChangePass()">
+                <i class="bi bi-check-circle me-1"></i> อัปเดตรหัสผ่าน
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- /Change Password Modal -->
+
+    <div class="content-area flex-grow-1">
+      <div class="admin-header-banner">
+        <div class="container-fluid">
+          <h4 class="stain-title-main animate__animated animate__fadeInLeft">
+            <i class="bi bi-plus-circle-fill text-info"></i>
+            Stain Setting Recorder
+          </h4>
+        </div>
+      </div>
+
+      <div class="container-fluid px-4 py-5">
+        <div class="main-form-card mx-auto" style="max-width: 1200px;">
+          <div class="form-title">Stain Setting Form</div>
+          <div class="form-subtitle animate__animated animate__fadeIn">
+            <i class="bi bi-gear-wide-connected text-primary"></i>ระบบบันทึกข้อมูลการตั้งค่าเครื่องย้อมสไลด์ SP-50
+          </div>
+
+          <form id="stainForm">
+
+            <div class="row g-4 mb-2">
+              <div class="col-md-6">
+                <label class="form-label"><i class="bi bi-hospital me-2"></i>Site</label>
+                <input type="text" name="site" class="form-control" placeholder="ระบุชื่อโรงพยาบาล..." required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label"><i class="bi bi-qr-code-scan me-2"></i>หมายเลขเครื่อง (Serial Number)</label>
+                <input type="text" name="sn" class="form-control" placeholder="ระบุหมายเลขเครื่อง..." required>
+              </div>
+            </div>
+
+            <div class="section-header mt-5"><i class="bi bi-tools me-2"></i>Service Setting</div>
+            <div class="row g-4">
+              <div class="col-md-6">
+                <label class="form-label">Prefixing</label>
+                <select name="prefixing" class="form-select" data-source="Prefixing" required><option value="">Loading...</option></select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Rinsing (rinse water)</label>
+                <select name="rinsing" class="form-select" data-source="Rinsing (rinse water)" required><option value="">Loading...</option></select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Amount of washing solution for diluted stain 1 (13-23)</label>
+                <input type="number" name="amtWash1" class="form-control" placeholder="13-23"
+                  oninput="validateAmtWash1(this)"
+                  onblur="if(this.value < 13 && this.value !== '') this.value = 13;" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Amount of washing solution for diluted stain 2 (29-62)</label>
+                <input type="number" name="amtWash2" class="form-control" placeholder="29-62"
+                  oninput="validateAmtWash2(this)"
+                  onblur="if(this.value < 29 && this.value !== '') this.value = 29;" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Extended Time Cleaning (0-60 min)</label>
+                <input type="number" name="extTime" class="form-control"
+                  min="0" max="60" placeholder="0-60" oninput="validateRange(this)" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Preparation method of diluted stain 1</label>
+                <select name="prepMethod" class="form-select" data-source="Preparation method of diluted stain 1" required><option value="">Loading...</option></select>
+              </div>
+            </div>
+
+            <div class="section-header mt-5"><i class="bi bi-droplet-fill me-2"></i>Stain Type</div>
+            <div class="row g-4">
+              <div class="col-md-6">
+                <label class="form-label">Brand</label>
+                <select name="mixed" class="form-select" data-source="Brand" required><option value="">Loading...</option></select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Single/Double Staining</label>
+                <select name="stainType" class="form-select" data-source="Single/Double Staining" required><option value="">Loading...</option></select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Fixing</label>
+                <select id="fixing" name="fixing" class="form-select" data-source="Fixing" required onchange="handleFixingChange()">
+                  <option value="">Loading...</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Buffer type</label>
+                <input type="text" name="bufferType" class="form-control" placeholder="ระบุประเภท Buffer..."
+                  oninput="validateAlphanumeric(this)" required>
+              </div>
+            </div>
+
+            <div class="section-header mt-5"><i class="bi bi-wind me-2"></i>Smear Fan</div>
+            <div class="row g-4">
+              <div class="col-md-6">
+                <label class="form-label">Fan 1</label>
+                <select name="fan1" class="form-select" data-source="Fan 1" required><option value="">Loading...</option></select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Fan 2</label>
+                <select name="fan2" class="form-select" data-source="Fan 2" required><option value="">Loading...</option></select>
+              </div>
+            </div>
+
+            <div class="section-header mt-5"><i class="bi bi-sliders me-2"></i>Stain Setting</div>
+            <div class="row g-4">
+              <div class="col-md-4" id="container-methanol-prefix">
+                <label class="form-label">Methanol Prefix</label>
+                <select id="methanolPrefix" name="methanolPrefix" class="form-select" data-source="Met Prefix" required>
+                  <option value="">Loading...</option>
+                </select>
+              </div>
+              <div class="col-md-4" id="container-methanol-fix">
+                <label class="form-label">Methanol Fix (mm:ss)</label>
+                <select id="methanolFix" name="methanolFix" class="form-select" data-source="Met Fix" required>
+                  <option value="">Loading...</option>
+                </select>
+              </div>
+              <div class="col-md-4" id="container-stain-prefix">
+                <label class="form-label">Stain Prefix</label>
+                <select id="stainPrefix" name="stainPrefix" class="form-select" data-source="Stain Prefix" required>
+                  <option value="">Loading...</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Undiluted Stain 1 (mm:ss)</label>
+                <select name="undilutedStain1_time" class="form-select" data-source="Undiluted Stain 1" required><option value="">Loading...</option></select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Stain 1 Dilution Ratio</label>
+                <select name="stain1_ratio" class="form-select" data-source="Stain 1 Dilution Ratio" required><option value="">Loading...</option></select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Diluted Stain 1 (mm:ss)</label>
+                <select name="dilutedStain1_time" class="form-select" data-source="Diluted Stain 1" required><option value="">Loading...</option></select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Stain 2 Dilution Ratio</label>
+                <select name="stain2_ratio" class="form-select" data-source="Stain 2 Dilution Ratio"><option value="">Loading...</option></select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Diluted Stain 2 (mm:ss)</label>
+                <select name="dilutedStain2_time" class="form-select" data-source="Diluted Stain 2"><option value="">Loading...</option></select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Rinse Count</label>
+                <select name="rinseCount" class="form-select" data-source="Rinse Count" required><option value="">Loading...</option></select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Dry (mm:ss)</label>
+                <select name="dryTime" class="form-select" data-source="Dry" required><option value="">Loading...</option></select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Heater Status</label>
+                <select name="heaterStatus" class="form-select" data-source="Heater" required><option value="">Loading...</option></select>
+              </div>
+            </div>
+
+            <div class="section-header mt-5"><i class="bi bi-plus-circle me-2"></i>Stain Addition Setting</div>
+            <div class="card border-0 shadow-sm overflow-hidden" style="border-radius: 20px;">
+              <div class="card-header bg-white pt-3 border-0">
+                <ul class="nav nav-tabs card-header-tabs border-0" id="additionTabs">
+                  <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#add-meth" type="button">Methanol</button></li>
+                  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#add-undiluted" type="button">Undiluted Stain 1</button></li>
+                  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#add-diluted1" type="button">Diluted Stain 1</button></li>
+                  <li class="nav-item" id="tab-stain2" style="display:none;"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#add-diluted2" type="button">Diluted Stain 2</button></li>
+                </ul>
+              </div>
+              <div class="card-body p-4 bg-light bg-opacity-50">
+                <div class="tab-content">
+                  <div class="tab-pane fade show active" id="add-meth">
+                    <div class="row g-3">
+                      <div class="col-md-6">
+                        <label class="form-label">Elapsed Time (HH:mm)</label>
+                        <select name="add_meth_time" class="form-select" data-source="Time Options"><option value="">Loading...</option></select>
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Number of slides</label>
+                        <select name="add_meth_slides" class="form-select" data-source="Slide Options"><option value="">Loading...</option></select>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="tab-pane fade" id="add-undiluted">
+                    <div class="row g-3">
+                      <div class="col-md-6">
+                        <label class="form-label">Elapsed Time (HH:mm)</label>
+                        <select name="add_undiluted_time" class="form-select" data-source="Time Options"><option value="">Loading...</option></select>
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Number of slides</label>
+                        <select name="add_undiluted_slides" class="form-select" data-source="Slide Options"><option value="">Loading...</option></select>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="tab-pane fade" id="add-diluted1">
+                    <label class="form-label">Elapsed Time (HH:mm)</label>
+                    <select name="add_diluted_time" class="form-select" data-source="Enlapsed Option"><option value="">Loading...</option></select>
+                  </div>
+                  <div class="tab-pane fade" id="add-diluted2">
+                    <label class="form-label">Elapsed Time (HH:mm)</label>
+                    <select name="add_diluted2_time" class="form-select" data-source="Enlapsed Option"><option value="">Loading...</option></select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="section-header mt-5"><i class="bi bi-arrow-repeat me-2"></i>Stain Replacement Setting</div>
+            <div class="card border-0 shadow-sm overflow-hidden" style="border-radius: 20px;">
+              <div class="card-header bg-white pt-3 border-0">
+                <ul class="nav nav-tabs card-header-tabs border-0" id="replacementTabs">
+                  <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#rep-meth" type="button">Methanol</button></li>
+                  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#rep-undiluted" type="button">Undiluted Stain 1</button></li>
+                  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#rep-diluted1" type="button">Diluted Stain 1</button></li>
+                  <li class="nav-item" id="tab-replace-stain2" style="display:none;"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#rep-diluted2" type="button">Diluted Stain 2</button></li>
+                </ul>
+              </div>
+              <div class="card-body p-4 bg-light bg-opacity-50">
+                <div class="tab-content">
+
+                  <div class="tab-pane fade show active" id="rep-meth">
+                    <div class="row g-3 align-items-end">
+                      <div class="col-md-6">
+                        <label class="form-label">Replacement Time Condition</label>
+                        <select id="replace_meth_cond" name="replace_meth_cond" class="form-select" data-source="Replace Options" onchange="toggleReplacementInput(this)">
+                          <option value="">Loading...</option>
+                        </select>
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Value (HH:mm)</label>
+                        <div class="d-flex align-items-center gap-2 custom-time-picker">
+                          <div class="input-group input-group-sm" style="width: 110px;">
+                            <button class="btn btn-primary" type="button" onclick="stepTime(this, 'HH', -1)">-</button>
+                            <input type="text" id="replace_meth_hh" class="form-control text-center bg-white fw-bold" value="00" readonly>
+                            <button class="btn btn-primary" type="button" onclick="stepTime(this, 'HH', 1)">+</button>
+                          </div>
+                          <span class="fw-bold">:</span>
+                          <div class="input-group input-group-sm" style="width: 110px;">
+                            <button class="btn btn-primary" type="button" onclick="stepTime(this, 'mm', -1)">-</button>
+                            <input type="text" id="replace_meth_mm" class="form-control text-center bg-white fw-bold" value="00" readonly>
+                            <button class="btn btn-primary" type="button" onclick="stepTime(this, 'mm', 1)">+</button>
+                          </div>
+                          <input type="hidden" id="replace_meth_val" name="replace_meth_val" value="00:00">
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="tab-pane fade" id="rep-undiluted">
+                    <div class="row g-3 align-items-end">
+                      <div class="col-md-6">
+                        <label class="form-label">Replacement Time Condition</label>
+                        <select id="replace_undiluted_cond" name="replace_undiluted_cond" class="form-select" data-source="Replace Options" onchange="toggleReplacementInput(this)">
+                          <option value="">Loading...</option>
+                        </select>
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Value (HH:mm)</label>
+                        <div class="d-flex align-items-center gap-2 custom-time-picker">
+                          <div class="input-group input-group-sm" style="width: 110px;">
+                            <button class="btn btn-primary" type="button" onclick="stepTime(this, 'HH', -1)">-</button>
+                            <input type="text" id="replace_undiluted_hh" class="form-control text-center bg-white fw-bold" value="00" readonly>
+                            <button class="btn btn-primary" type="button" onclick="stepTime(this, 'HH', 1)">+</button>
+                          </div>
+                          <span class="fw-bold">:</span>
+                          <div class="input-group input-group-sm" style="width: 110px;">
+                            <button class="btn btn-primary" type="button" onclick="stepTime(this, 'mm', -1)">-</button>
+                            <input type="text" id="replace_undiluted_mm" class="form-control text-center bg-white fw-bold" value="00" readonly>
+                            <button class="btn btn-primary" type="button" onclick="stepTime(this, 'mm', 1)">+</button>
+                          </div>
+                          <input type="hidden" id="replace_undiluted_val" name="replace_undiluted_val" value="00:00">
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="tab-pane fade" id="rep-diluted1">
+                    <div class="row g-3 align-items-end">
+                      <div class="col-md-6">
+                        <label class="form-label">Replacement Time Condition</label>
+                        <select id="replace_diluted1_cond" name="replace_diluted1_cond" class="form-select" data-source="Replace Options" onchange="toggleReplacementInput(this)">
+                          <option value="">Loading...</option>
+                        </select>
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Value (HH:mm)</label>
+                        <div class="d-flex align-items-center gap-2 custom-time-picker">
+                          <div class="input-group input-group-sm" style="width: 110px;">
+                            <button class="btn btn-primary" type="button" onclick="stepTime(this, 'HH', -1)">-</button>
+                            <input type="text" id="replace_diluted1_hh" class="form-control text-center bg-white fw-bold" value="00" readonly>
+                            <button class="btn btn-primary" type="button" onclick="stepTime(this, 'HH', 1)">+</button>
+                          </div>
+                          <span class="fw-bold">:</span>
+                          <div class="input-group input-group-sm" style="width: 110px;">
+                            <button class="btn btn-primary" type="button" onclick="stepTime(this, 'mm', -1)">-</button>
+                            <input type="text" id="replace_diluted1_mm" class="form-control text-center bg-white fw-bold" value="00" readonly>
+                            <button class="btn btn-primary" type="button" onclick="stepTime(this, 'mm', 1)">+</button>
+                          </div>
+                          <input type="hidden" id="replace_diluted1_val" name="replace_diluted1_val" value="00:00">
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="tab-pane fade" id="rep-diluted2">
+                    <div class="row g-3 align-items-end">
+                      <div class="col-md-6">
+                        <label class="form-label">Replacement Time Condition</label>
+                        <select id="replace_diluted2_cond" name="replace_diluted2_cond" class="form-select" data-source="Replace Options" onchange="toggleReplacementInput(this)">
+                          <option value="">Loading...</option>
+                        </select>
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Value (HH:mm)</label>
+                        <div class="d-flex align-items-center gap-2 custom-time-picker">
+                          <div class="input-group input-group-sm" style="width: 110px;">
+                            <button class="btn btn-primary" type="button" onclick="stepTime(this, 'HH', -1)">-</button>
+                            <input type="text" id="replace_diluted2_hh" class="form-control text-center bg-white fw-bold" value="00" readonly>
+                            <button class="btn btn-primary" type="button" onclick="stepTime(this, 'HH', 1)">+</button>
+                          </div>
+                          <span class="fw-bold">:</span>
+                          <div class="input-group input-group-sm" style="width: 110px;">
+                            <button class="btn btn-primary" type="button" onclick="stepTime(this, 'mm', -1)">-</button>
+                            <input type="text" id="replace_diluted2_mm" class="form-control text-center bg-white fw-bold" value="00" readonly>
+                            <button class="btn btn-primary" type="button" onclick="stepTime(this, 'mm', 1)">+</button>
+                          </div>
+                          <input type="hidden" id="replace_diluted2_val" name="replace_diluted2_val" value="00:00">
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+
+            <div class="section-header mt-5">
+              <i class="bi bi-person-check-fill me-2"></i>Recorded Information
+            </div>
+            <div class="row g-4 mb-4">
+              <div class="col-md-12">
+                <label class="form-label">บันทึกข้อมูลโดย</label>
+                <div class="input-group">
+                  <span class="input-group-text bg-light"><i class="bi bi-person-badge"></i></span>
+                  <!-- ✅ ค่าจะถูก set ด้วย JS จาก localStorage แทน <?= userName ?> -->
+                  <input type="text" name="recordedBy" id="recordedBy_Input" class="form-control" readonly required>
+                </div>
+              </div>
+            </div>
+
+            <div class="d-grid gap-2 mt-5">
+              <button type="button" id="submitBtn" class="btn-submit animate__animated animate__fadeInUp"
+                onclick="submitFormData(document.getElementById('stainForm'))">
+                <i class="fas fa-save me-2"></i> Confirm and Save Configuration
+              </button>
+            </div>
+
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- ✅ โหลด session + helpers ก่อนเสมอ -->
+  <script src="script-common.js"></script>
+
+  <script>
+    // ✅ แทน window.userName = "<?= userName ?>" ทั้งหมด
+    // อ่านจาก localStorage ที่ login.js บันทึกไว้
+    document.addEventListener('DOMContentLoaded', function () {
+      const session = getSession();
+
+      // ถ้าไม่มี session ให้กลับไป login
+      if (!session.token || !session.user) {
+        redirectToLogin();
+        return;
+      }
+
+      // ใส่ค่าใน sidebar
+      document.getElementById('userAvatar').textContent   = session.user.charAt(0).toUpperCase();
+      document.getElementById('displayUserName').textContent = session.user;
+      document.getElementById('displayUserDept').textContent = session.dept;
+
+      // ใส่ชื่อผู้บันทึก
+      document.getElementById('recordedBy_Input').value = session.user;
+
+      // แสดงเมนู Admin ถ้ามีสิทธิ์
+      if (session.dept === 'Admin' || session.dept === 'Application Specialist') {
+        document.getElementById('admin-menu-item').style.display = 'block';
+      }
+    });
+  </script>
+
+  <!-- ✅ แทน <?!= include('JavaScript') ?> -->
+  <script src="script-newrecord.js"></script>
+
+</body>
+</html>

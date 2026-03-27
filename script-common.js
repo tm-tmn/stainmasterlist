@@ -47,9 +47,7 @@ function clearSession() {
 // --- Redirect ---
 function redirectToLogin() {
   setTimeout(() => {
-    window.location.href = "/login.html";
-    // ถ้า repo อยู่ใน subfolder ให้เปลี่ยนเป็น:
-    // window.location.href = "/REPO_NAME/login.html";
+    window.location.href = "index.html"; 
   }, 100);
 }
 

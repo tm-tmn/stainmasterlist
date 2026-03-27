@@ -47,7 +47,7 @@ function clearSession() {
 // --- Redirect ---
 function redirectToLogin() {
   setTimeout(() => {
-    window.location.href = "index.html"; 
+    window.location.href = "/index.html"; 
   }, 100);
 }
 

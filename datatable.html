@@ -169,25 +169,38 @@
   <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
   <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script>
-  // ข้อมูลผู้ใช้ (ห้ามลบ เพราะใช้เช็คสิทธิ์ในหน้าจอ)
-  window.userName = "<?= userName ?>";
-  window.userLogin = "<?= userLogin ?>";
-  window.userDept = "<?= userDept ?>";
-  window.token = "<?= token ?>";
+ 
+  <!-- ✅ โหลด session + helpers ก่อนเสมอ -->
+  <script src="script-common.js"></script>
 
-  // URL ของสคริปต์ (ใช้ ScriptApp โดยตรงเพื่อให้ชัวร์ว่าค่าไม่ว่าง)
-  window.scriptUrl = "<?= ScriptApp.getService().getUrl() ?>";
+  <script>
+    // ✅ แทน window.userName = "<?= userName ?>" ทั้งหมด
+    // อ่านจาก localStorage ที่ login.js บันทึกไว้
+    document.addEventListener('DOMContentLoaded', function () {
+      const session = getSession();
 
-  // เช็คสิทธิ์เมนู Admin
-  document.addEventListener('DOMContentLoaded', function() {
-    const adminMenu = document.getElementById('admin-menu-item');
-    if (window.userDept === 'Admin' || window.userDept === 'Application Specialist') {
-      if (adminMenu) adminMenu.style.display = 'block';
-    }
-  });
-</script>
-<script src="script-newrecord.js"></script>
+      // ถ้าไม่มี session ให้กลับไป login
+      if (!session.token || !session.user) {
+        redirectToLogin();
+        return;
+      }
 
+      // ใส่ค่าใน sidebar
+      document.getElementById('userAvatar').textContent   = session.user.charAt(0).toUpperCase();
+      document.getElementById('displayUserName').textContent = session.user;
+      document.getElementById('displayUserDept').textContent = session.dept;
+
+      // ใส่ชื่อผู้บันทึก
+      document.getElementById('recordedBy_Input').value = session.user;
+
+      // แสดงเมนู Admin ถ้ามีสิทธิ์
+      if (session.dept === 'Admin' || session.dept === 'Application Specialist') {
+        document.getElementById('admin-menu-item').style.display = 'block';
+      }
+    });
+  </script>
+
+  <!-- ✅ แทน <?!= include('JavaScript') ?> -->
+  <script src="script-datatable.js"></script>
 </body>
 </html>

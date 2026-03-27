@@ -10,6 +10,12 @@ document.addEventListener('DOMContentLoaded', function () {
   }
  });
 
+document.getElementById('pass').addEventListener('keypress', function (e) {
+  if (e.key === 'Enter') {
+    handleLogin();
+  }
+});
+
 async function handleLogin() {
   const u = document.getElementById('user').value.trim();
   const p = document.getElementById('pass').value.trim();

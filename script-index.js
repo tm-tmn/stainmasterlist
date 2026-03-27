@@ -6,7 +6,7 @@
 document.addEventListener('DOMContentLoaded', function () {
   const { token, user } = getSession();
   if (token && user) {
-  window.location.href = '/datatable.html';
+  window.location.href = './datatable.html';
   }
  });
 
@@ -39,7 +39,7 @@ async function handleLogin() {
 
       Swal.close();
 
-      window.location.href = '/datatable.html';
+      window.location.href = './datatable.html';
     } else {
       Swal.fire('Error', 'Username หรือ Password ไม่ถูกต้อง', 'error');
     }

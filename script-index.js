@@ -6,7 +6,7 @@
 document.addEventListener('DOMContentLoaded', function () {
   const { token, user } = getSession();
   if (token && user) {
-  window.location.href = 'datatable.html';
+  window.location.href = '/datatable.html';
   }
  });
 

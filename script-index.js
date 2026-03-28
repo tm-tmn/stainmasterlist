@@ -7,8 +7,6 @@ document.addEventListener('DOMContentLoaded', function () {
   const { token, user } = getSession();
   if (token && user) {
     window.location.href = '/stainmasterlist/datatable.html';
-    // ถ้า repo อยู่ใน subfolder ให้เปลี่ยนเป็น:
-    // window.location.href = '/REPO_NAME/datatable.html';
   }
 });
 
@@ -39,8 +37,6 @@ async function handleLogin() {
 
       // ✅ Redirect ไปหน้า main (frontend จัดการเอง ไม่ต้องรอ URL จาก server)
       window.location.href = '/stainmasterlist/datatable.html';
-      // ถ้า repo อยู่ใน subfolder ให้เปลี่ยนเป็น:
-      // window.location.href = '/REPO_NAME/datatable.html';
 
     } else {
       Swal.fire('Error', 'Username หรือ Password ไม่ถูกต้อง', 'error');

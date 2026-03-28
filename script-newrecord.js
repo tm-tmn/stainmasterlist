@@ -502,7 +502,7 @@ async function submitFormData(form) {
     // ✅ แทน window.token / window.userLogin — อ่านจาก localStorage
     const { token, user, userAccount } = getSession();
     data.token      = token;
-    data.userLogin  = user;       // ส่ง userName ให้ server validate
+    data.user = user;       // ส่ง userName ให้ server validate
     data.recordedBy = recordedByEl.value;
 
     // ✅ แทน google.script.run.submitForm()

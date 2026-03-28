@@ -72,7 +72,12 @@ async function submitSelfChangePass() {
 
   try {
     // ✅ แทน google.script.run.updatePasswordInSheet()
-    const res = await callAPI('updatePassword', { token, user, targetUser: currentLoginID, newPass: p1 });
+    const res = await callAPI('updateStainRecord', { 
+      token,        
+      user,         
+      data, 
+      rowIndex: data.rowIndex 
+    });
     Swal.close();
 
     if (res.success) {

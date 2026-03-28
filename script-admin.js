@@ -1,3 +1,4 @@
+<script>
 (function() {
     const urlParams = new URLSearchParams(window.location.search);
     const currentPage = urlParams.get('page');
@@ -752,3 +753,4 @@ function loadLogData() {
     })
     .getEditLogs(window.userDept);
 }
+</script>

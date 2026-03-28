@@ -868,8 +868,12 @@ async function updateData() {
   Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
   try {
-    // ✅ แทน google.script.run.updateStainRecord()
-    const response = await callAPI('updateStainRecord', { data, rowIndex: data.rowIndex });
+    const response = await callAPI('updateStainRecord', {
+      token,              // ✅ body.token — doPost อ่านได้โดยตรง
+      user,               // ✅ body.user — doPost อ่านได้โดยตรง
+      data,               // body.data — ส่งไปให้ updateStainRecord()
+      rowIndex: data.rowIndex
+    });
 
     if (response.result === 'Success') {
       Swal.fire({ icon: 'success', title: 'สำเร็จ!', text: 'แก้ไขข้อมูลเรียบร้อยแล้ว', timer: 1500, showConfirmButton: false });

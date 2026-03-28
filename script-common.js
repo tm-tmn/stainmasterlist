@@ -50,14 +50,11 @@ function redirectToLogin() {
   setTimeout(() => {
     // ✅ login.html → index.html (GitHub Pages เริ่มต้นที่ index.html)
     window.location.href = "/stainmasterlist/index.html";
-    // ถ้า repo อยู่ใน subfolder เช่น /stain-system/ ให้เปลี่ยนเป็น:
-    // window.location.href = "/REPO_NAME/index.html";
   }, 100);
 }
 
 function redirectToMain() {
   window.location.href = "/stainmasterlist/datatable.html";
-  // window.location.href = "/REPO_NAME/datatable.html";
 }
 
 // --- Logout ---

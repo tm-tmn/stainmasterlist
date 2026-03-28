@@ -71,12 +71,11 @@ async function submitSelfChangePass() {
   Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
   try {
-    // ✅ แทน google.script.run.updatePasswordInSheet()
-    const res = await callAPI('updateStainRecord', { 
-      token,        
-      user,         
-      data, 
-      rowIndex: data.rowIndex 
+    const res = await callAPI('updatePassword', {
+      token,
+      user,
+      targetUser: currentLoginID,  // ✅ username ที่ต้องการเปลี่ยน password
+      newPass: p1                  // ✅ รหัสผ่านใหม่
     });
     Swal.close();
 

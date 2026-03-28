@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', function () {
       text: 'สิทธิ์ระดับนี้ไม่สามารถเข้าถึงหน้านี้ได้',
       confirmButtonText: 'ตกลง'
     }).then(() => {
-      window.location.href = '/datatable.html';
+      window.location.href = '/stainmasterlist/datatable.html';
     });
   }
 });

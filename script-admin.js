@@ -1,489 +1,364 @@
-/**
- * script-admin.js
- * สำหรับจัดการระบบ Admin, Master Settings, User Management และ Logs
- */
+// ============================================================
+// script-admin.js
+// ============================================================
 
-// --- 1. ตรวจสอบสิทธิ์การเข้าถึงเบื้องต้น ---
-(function() {
-    const { user, dept, token } = getSession();
-    const urlParams = new URLSearchParams(window.location.search);
-    const currentPage = urlParams.get('page');
-
-    // ถ้าพยายามเข้าหน้า Admin แต่สิทธิ์ไม่ใช่ Admin หรือ AS
-    if (currentPage === 'admin' && dept === 'Service Engineer') {
-        Swal.fire({
-            icon: 'error',
-            title: 'Access Denied',
-            text: 'สิทธิ์ระดับ Service Engineer ไม่สามารถเข้าถึงหน้านี้ได้',
-            confirmButtonText: 'ตกลง'
-        }).then(() => { 
-            window.location.href = "index.html?page=main";
-        });
-    }
-})();
-
-// --- 2. Event Listeners เมื่อโหลดหน้าจอ ---
-window.addEventListener('DOMContentLoaded', () => {
-    const userDept = getSession().dept;
-    
-    // ถ้าเป็นหน้า Admin และมีสิทธิ์ ให้โหลดข้อมูลทันที
-    if (document.getElementById('displayArea')) {
-        refreshData();
-    }
-
-    // ตั้งค่า Log Modal Event
-    const logModalElem = document.getElementById('logModal');
-    if (logModalElem) {
-        logModalElem.addEventListener('shown.bs.modal', function () {
-            loadLogData();
-        });
-    }
-});
-
-
-/**
- * ฟังก์ชันแสดง Loading Overlay
- */
-function showLoading(msg = 'กำลังดำเนินการ...') {
+// ============================================================
+// Guard: ตรวจสิทธิ์จาก localStorage แทน URL params
+// (แทนบล็อก IIFE ที่เช็ค window.userDept และ window.scriptUrl)
+// ============================================================
+document.addEventListener('DOMContentLoaded', function () {
+  const { dept } = getSession();
+  if (dept === 'Service Engineer') {
     Swal.fire({
-        title: msg,
-        allowOutsideClick: false,
-        didOpen: () => { Swal.showLoading(); }
-    });
-}
-
-  window.onload = function() {
-      const userDept = window.userDept;
-      if (userDept === 'Application Specialist') {
-    }
-      refreshData();
-  };
-
-  function setupLoginHandler(modal) {
-    const form = document.getElementById('adminLoginForm');
-    if (!form) return;
-
-    form.addEventListener('submit', function(e) {
-      e.preventDefault();
-      const user = document.getElementById('adminUsername').value;
-      const pass = document.getElementById('adminPassword').value;
-
-      showLoading('กำลังตรวจสอบสิทธิ์...'); // ตอนนี้จะเรียกได้แล้ว
-
-      google.script.run
-        .withSuccessHandler(function(response) {
-          if (response.success) {
-            Swal.fire({
-              icon: 'success',
-              title: 'เข้าสู่ระบบสำเร็จ',
-              timer: 1000,
-              showConfirmButton: false
-            }).then(() => {
-              modal.hide();
-              document.getElementById('adminContent').style.display = 'block';
-              refreshData(); // 🚩 จะไปดึงข้อมูลจาก Setting ต่อที่นี่
-            });
-          } else {
-            Swal.fire('ล้มเหลว', response.message, 'error');
-          }
-        })
-        .withFailureHandler(function(err) {
-          Swal.fire('Error', 'Login Fail: ' + err, 'error');
-        })
-        .checkAdminLogin(user, pass);
+      icon: 'error',
+      title: 'Access Denied',
+      text: 'สิทธิ์ระดับนี้ไม่สามารถเข้าถึงหน้านี้ได้',
+      confirmButtonText: 'ตกลง'
+    }).then(() => {
+      window.location.href = '/datatable.html';
     });
   }
+});
 
-/**
- * โหลดข้อมูล Master Settings ทั้งหมด (Dropdown options)
- */
+// ============================================================
+// Init
+// ============================================================
+window.onload = function () {
+  refreshData();
+};
+
+// ============================================================
+// Helpers
+// ============================================================
+function showLoading(msg = 'กำลังดำเนินการ...') {
+  Swal.fire({ title: msg, allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+}
+
+// ============================================================
+// Dropdown Management
+// ============================================================
 async function refreshData() {
-    showLoading('กำลังโหลดข้อมูล...');
+  showLoading('กำลังโหลดข้อมูล...');
 
-    try {
-        const options = await callAPI('getMasterSettings');
-        const headerSelect = document.getElementById('headerSelect');
-        const displayArea = document.getElementById('displayArea');
-        
-        if (!headerSelect || !displayArea) return;
+  try {
+    // ✅ แทน google.script.run.getMasterSettings()
+    const options = await callAPIGet({ action: 'getMasterSettings' });
 
-        headerSelect.innerHTML = '';
-        displayArea.innerHTML = '';
+    const headerSelect = document.getElementById('headerSelect');
+    const displayArea  = document.getElementById('displayArea');
 
-        for (let header in options) {
-            // เพิ่มตัวเลือกใน Dropdown สำหรับ Add New
-            let opt = document.createElement('option');
-            opt.value = header;
-            opt.text = header;
-            headerSelect.appendChild(opt);
+    headerSelect.innerHTML = '';
+    displayArea.innerHTML  = '';
 
-            // สร้าง Card แสดงรายการข้อมูล
-            let html = `
-                <div class="col-md-4 col-lg-3 mb-3">
-                  <div class="data-card shadow-sm border rounded">
-                    <div class="data-card-header bg-light p-2 border-bottom fw-bold">
-                        <span title="${header}">${header}</span>
-                    </div>
-                    <div class="card-body p-0 card-scroll-area" style="max-height: 250px; overflow-y: auto;">
-                      <ul class="list-group list-group-flush">`;
-              
-            options[header].forEach(item => {
-                if (item !== "") {
-                    html += `
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                          <span class="text-truncate" style="max-width: 150px;">${item}</span>
-                          <div class="btn-group action-icons">
-                            <i class="bi bi-pencil-square text-primary me-2" role="button" onclick="editOption('${header}', '${item}')"></i>
-                            <i class="bi bi-trash3 text-danger" role="button" onclick="deleteOption('${header}', '${item}')"></i>
-                          </div>
-                        </li>`;
-                }
-            });
-            html += `</ul></div></div></div>`;
-            displayArea.insertAdjacentHTML('beforeend', html);
+    for (let header in options) {
+      const opt = document.createElement('option');
+      opt.value = header;
+      opt.text  = header;
+      headerSelect.appendChild(opt);
+
+      let html = `
+        <div class="col-md-4 col-lg-3">
+          <div class="data-card">
+            <div class="data-card-header"><span title="${header}">${header}</span></div>
+            <div class="card-body p-0 card-scroll-area" style="max-height: 250px; overflow-y: auto;">
+              <ul class="list-group list-group-flush">`;
+
+      options[header].forEach(item => {
+        if (item !== '') {
+          html += `
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <span class="text-truncate">${item}</span>
+              <div class="btn-group action-icons">
+                <i class="bi bi-pencil-square text-primary me-2" role="button" onclick="editOption('${header}', '${item}')"></i>
+                <i class="bi bi-trash3 text-danger" role="button" onclick="deleteOption('${header}', '${item}')"></i>
+              </div>
+            </li>`;
         }
-        Swal.close(); 
-    } catch (err) {
-        Swal.fire('Error', 'โหลดข้อมูลล้มเหลว: ' + err, 'error');
+      });
+
+      html += `</ul></div></div></div>`;
+      displayArea.innerHTML += html;
     }
+
+    Swal.close();
+  } catch (err) {
+    Swal.fire('Error', 'โหลดข้อมูลล้มเหลว: ' + err, 'error');
+  }
 }
 
-
-/**
- * เพิ่ม Option ใหม่
- */
 async function saveNewOption() {
-    const head = document.getElementById('headerSelect').value;
-    const val = document.getElementById('newValue').value.trim();
+  const head = document.getElementById('headerSelect').value;
+  const val  = document.getElementById('newValue').value.trim();
 
-    if(!val) {
-        Swal.fire('คำเตือน', 'กรุณากรอกข้อมูลที่ต้องการเพิ่ม', 'warning');
-        return;
-    }
+  if (!val) {
+    Swal.fire('คำเตือน', 'กรุณากรอกข้อมูลที่ต้องการเพิ่ม', 'warning');
+    return;
+  }
 
-    showLoading('กำลังบันทึกข้อมูล...');
+  showLoading('กำลังบันทึกข้อมูล...');
 
-    try {
-        const res = await callAPI('addOptionToSheet', { header: head, value: val });
-        document.getElementById('newValue').value = '';
-        await Swal.fire({ icon: 'success', title: 'สำเร็จ', text: res, timer: 1500, showConfirmButton: false });
-        refreshData();
-    } catch (err) {
-        Swal.fire('Error', 'บันทึกไม่สำเร็จ: ' + err, 'error');
-    }
+  try {
+    // ✅ แทน google.script.run.addOptionToSheet()
+    const { token, user } = getSession();
+    const res = await callAPI('addOption', { token, user, header: head, value: val });
+    document.getElementById('newValue').value = '';
+    Swal.fire({ icon: 'success', title: 'สำเร็จ', text: res.message, timer: 1500, showConfirmButton: false })
+      .then(() => refreshData());
+  } catch (err) {
+    Swal.fire('Error', 'บันทึกไม่สำเร็จ: ' + err, 'error');
+  }
 }
 
-/**
- * แก้ไขชื่อ Option
- */
 async function editOption(head, oldVal) {
-    const { value: newVal } = await Swal.fire({
-        title: 'แก้ไขข้อมูล',
-        html: `แก้ไขค่าในหัวข้อ: <b>${head}</b>`,
-        input: 'text',
-        inputValue: oldVal,
-        showCancelButton: true,
-        confirmButtonText: 'บันทึกการแก้ไข',
-        inputValidator: (value) => { if (!value) return 'กรุณากรอกข้อมูลใหม่!' }
-    });
+  const result = await Swal.fire({
+    title: 'แก้ไขข้อมูล',
+    html: `แก้ไขค่าในหัวข้อ: <b>${head}</b>`,
+    input: 'text',
+    inputValue: oldVal,
+    showCancelButton: true,
+    confirmButtonText: 'บันทึกการแก้ไข',
+    cancelButtonText: 'ยกเลิก',
+    confirmButtonColor: '#0d6efd',
+    inputValidator: v => { if (!v || v.trim() === '') return 'กรุณากรอกข้อมูลใหม่!'; }
+  });
 
-    if (newVal) {
-        showLoading('กำลังอัปเดต...');
-        try {
-            await callAPI('editOptionInSheet', { header: head, oldValue: oldVal, newValue: newVal });
-            await Swal.fire({ icon: 'success', title: 'แก้ไขเรียบร้อย', timer: 1500, showConfirmButton: false });
-            refreshData();
-        } catch (err) {
-            Swal.fire('Error', err.toString(), 'error');
-        }
-    }
-}
-
-/**
- * ลบ Option
- */
-async function deleteOption(head, val) {
-    const confirm = await Swal.fire({
-        title: 'ยืนยันการลบ?',
-        text: `คุณต้องการลบ "${val}" ออกจากหัวข้อ "${head}" ใช่หรือไม่?`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#dc3545',
-        confirmButtonText: 'ใช่, ลบเลย'
-    });
-
-    if (confirm.isConfirmed) {
-        showLoading('กำลังลบข้อมูล...');
-        try {
-            await callAPI('deleteOptionFromSheet', { header: head, value: val });
-            await Swal.fire({ icon: 'success', title: 'ลบข้อมูลสำเร็จ', timer: 1000, showConfirmButton: false });
-            refreshData();
-        } catch (err) {
-            Swal.fire('Error', err.toString(), 'error');
-        }
-    }
-}
-
-// --- 4. User Management (Admin Only) ---
-
-/**
- * เปิด Modal จัดการผู้ใช้
- */
-function openManageUserModal() {
-    const { dept } = getSession();
-    if (dept !== 'Admin') {
-        Swal.fire({ icon: 'warning', title: 'สิทธิ์ไม่เพียงพอ', text: 'เฉพาะ Admin เท่านั้นที่สามารถจัดการผู้ใช้งานได้' });
-        return;
-    }
-    const modal = new bootstrap.Modal(document.getElementById('userModal'));
-    modal.show();
-    loadUserData();
-}
-
-/**
- * โหลดรายชื่อผู้ใช้ทั้งหมด
- */
-async function loadUserData() {
-    showLoading('กำลังโหลดข้อมูลผู้ใช้งาน...');
+  if (result.isConfirmed) {
+    showLoading('กำลังอัปเดต...');
     try {
-        const users = await callAPI('getUserList');
-        const area = document.getElementById('userTableArea');
-        let html = `
-            <div class="table-responsive">
-              <table class="table table-hover align-middle border">
-                <thead class="table-light">
-                  <tr>
-                    <th>Username</th><th>Name</th><th>Dept</th><th class="text-center">Action</th>
-                  </tr>
-                </thead>
-                <tbody>`;
-        
-        users.forEach((u) => {
-            const isAdmin = (u.dept === 'Admin');
-            html += `
-              <tr>
-                <td><code>${u.username}</code></td>
-                <td>${u.name}</td>
-                <td><span class="badge bg-info text-dark">${u.dept}</span></td>
-                <td class="text-center">
-                  <button class="btn btn-sm btn-outline-primary me-1" onclick="toggleUserForm(true, true, '${u.username}')" title="เปลี่ยนรหัสผ่าน">
-                    <i class="bi bi-key"></i>
-                  </button>
-                  ${!isAdmin ? `
-                    <button class="btn btn-sm btn-outline-danger" onclick="deleteUser('${u.username}')">
-                      <i class="bi bi-trash"></i>
-                    </button>` : `<button class="btn btn-sm btn-light text-muted" disabled><i class="bi bi-trash"></i></button>`}
-                </td>
-              </tr>`;
-        });
-        area.innerHTML = html + `</tbody></table></div>`;
-        Swal.close();
+      // ✅ แทน google.script.run.editOptionInSheet()
+      const { token, user } = getSession();
+      await callAPI('editOption', { token, user, header: head, oldValue: oldVal, newValue: result.value });
+      Swal.fire({ icon: 'success', title: 'แก้ไขเรียบร้อย', timer: 1500, showConfirmButton: false })
+        .then(() => refreshData());
     } catch (err) {
-        Swal.fire('Error', err.toString(), 'error');
+      Swal.fire('Error', 'แก้ไขไม่สำเร็จ: ' + err, 'error');
     }
+  }
 }
 
-/**
- * เพิ่มผู้ใช้งานใหม่ (ใช้ Swal Form)
- */
-async function addNewUserForm() {
-    // แก้ปัญหา Focus ของ Bootstrap Modal ซ้อน Swal
-    const userModalElem = document.getElementById('userModal');
-    userModalElem.removeAttribute('tabindex');
+async function deleteOption(head, val) {
+  const result = await Swal.fire({
+    title: 'ยืนยันการลบ?',
+    text: `คุณต้องการลบ "${val}" ออกจากหัวข้อ "${head}" ใช่หรือไม่?`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#dc3545',
+    cancelButtonColor: '#6c757d',
+    confirmButtonText: 'ใช่, ลบเลย',
+    cancelButtonText: 'ยกเลิก'
+  });
 
-    const { value: formValues } = await Swal.fire({
-        title: 'เพิ่มผู้ใช้งานใหม่',
-        html: `
-            <div class="text-start">
-                <label class="small fw-bold">Username</label><input id="new-username" class="swal2-input mt-1">
-                <label class="small fw-bold">Password</label><input id="new-password" type="password" class="swal2-input mt-1">
-                <label class="small fw-bold">Full Name</label><input id="new-name" class="swal2-input mt-1">
-                <label class="small fw-bold">Department</label>
-                <select id="new-dept" class="swal2-input mt-1">
-                    <option value="Application Specialist">Application Specialist</option>
-                    <option value="Service Engineer">Service Engineer</option>
-                    <option value="Admin">Admin</option>
-                </select>
-            </div>`,
-        focusConfirm: false,
-        showCancelButton: true,
-        preConfirm: () => {
-            return {
-                username: document.getElementById('new-username').value.trim(),
-                password: document.getElementById('new-password').value.trim(),
-                name: document.getElementById('new-name').value.trim(),
-                dept: document.getElementById('new-dept').value
-            }
-        }
+  if (result.isConfirmed) {
+    showLoading('กำลังลบข้อมูล...');
+    try {
+      // ✅ แทน google.script.run.deleteOptionFromSheet()
+      const { token, user } = getSession();
+      await callAPI('deleteOption', { token, user, header: head, value: val });
+      Swal.fire({ icon: 'success', title: 'ลบข้อมูลสำเร็จ', timer: 1000, showConfirmButton: false })
+        .then(() => refreshData());
+    } catch (err) {
+      Swal.fire('Error', 'ลบไม่สำเร็จ: ' + err, 'error');
+    }
+  }
+}
+
+// ============================================================
+// User Management
+// ============================================================
+function openManageUserModal() {
+  const { dept } = getSession();
+  if (dept !== 'Admin') {
+    Swal.fire({ icon: 'warning', title: 'สิทธิ์ไม่เพียงพอ',
+      text: 'เฉพาะ Admin เท่านั้นที่สามารถจัดการผู้ใช้งานได้', confirmButtonColor: '#3085d6' });
+    return;
+  }
+  const modalElem = document.getElementById('userModal');
+  let userModal = bootstrap.Modal.getInstance(modalElem);
+  if (!userModal) userModal = new bootstrap.Modal(modalElem);
+  userModal.show();
+  loadUserData();
+}
+
+async function loadUserData() {
+  showLoading('กำลังโหลดข้อมูลผู้ใช้งาน...');
+
+  try {
+    // ✅ แทน google.script.run.getUserList()
+    const { token, user } = getSession();
+    const users = await callAPIGet({ action: 'getUserList', token, user });
+
+    const area = document.getElementById('userTableArea');
+    let html = `
+      <div class="table-responsive">
+        <table class="table table-hover align-middle border">
+          <thead class="table-light">
+            <tr><th>Username</th><th>Name</th><th>Dept</th><th class="text-center">Action</th></tr>
+          </thead>
+          <tbody>`;
+
+    users.forEach(u => {
+      const isAdmin = (u.dept === 'Admin');
+      html += `
+        <tr>
+          <td><code>${u.username}</code></td>
+          <td>${u.name}</td>
+          <td><span class="badge bg-info text-dark">${u.dept}</span></td>
+          <td class="text-center">
+            <button class="btn btn-sm btn-outline-primary me-1" onclick="editUserPassword('${u.username}')" title="เปลี่ยนรหัสผ่าน">
+              <i class="bi bi-key"></i>
+            </button>
+            ${!isAdmin
+              ? `<button class="btn btn-sm btn-outline-danger" onclick="deleteUser('${u.username}')"><i class="bi bi-trash"></i></button>`
+              : `<button class="btn btn-sm btn-light text-muted" disabled><i class="bi bi-trash"></i></button>`}
+          </td>
+        </tr>`;
     });
 
-    if (formValues) {
-        if (!formValues.username || !formValues.password) return Swal.fire('ข้อมูลไม่ครบ');
-        showLoading('กำลังบันทึก...');
-        try {
-            const res = await callAPI('addUserToSheet', formValues);
-            if (res.success) {
-                Swal.fire('สำเร็จ', 'เพิ่มผู้ใช้เรียบร้อย', 'success');
-                loadUserData();
-            } else {
-                Swal.fire('ล้มเหลว', res.message, 'error');
-            }
-        } catch (err) { Swal.fire('Error', err.toString(), 'error'); }
-    }
+    html += `</tbody></table></div>`;
+    area.innerHTML = html;
+    Swal.close();
+  } catch (err) {
+    Swal.fire('Error', 'โหลด User ล้มเหลว: ' + err, 'error');
+  }
 }
 
-// ฟังก์ชันลบ User
-function deleteUser(username) {
-  Swal.fire({
+async function deleteUser(username) {
+  const result = await Swal.fire({
     title: 'ยืนยันการลบ?',
     text: `คุณต้องการลบผู้ใช้ "${username}" ใช่หรือไม่?`,
     icon: 'warning',
     showCancelButton: true,
     confirmButtonColor: '#d33',
     confirmButtonText: 'ใช่, ลบเลย'
-  }).then((result) => {
-    if (result.isConfirmed) {
-      showLoading('กำลังลบ...');
-      google.script.run
-        .withSuccessHandler(() => {
-          Swal.fire('สำเร็จ', 'ลบผู้ใช้งานเรียบร้อย', 'success');
-          loadUserData(); // รีโหลดตาราง
-        })
-        .deleteUserFromSheet(username); // ต้องสร้างฟังก์ชันนี้ใน Code.gs
-    }
   });
-}
 
-// ฟังก์ชันสำหรับ Admin เปลี่ยนรหัสให้คนอื่น
-function editUserPassword(username) {
-  Swal.fire({
-    title: `เปลี่ยนรหัสผ่านสำหรับ: ${username}`,
-    input: 'password',
-    inputLabel: 'กรอกรหัสผ่านใหม่',
-    inputPlaceholder: 'Password',
-    showCancelButton: true,
-    confirmButtonText: 'ยืนยัน',
-    cancelButtonText: 'ยกเลิก',
-    inputAttributes: {
-      autocapitalize: 'off',
-      autocorrect: 'off'
-    },
-    inputValidator: (value) => {
-      if (!value) return 'กรุณากรอกรหัสผ่านใหม่!';
-      if (value.length < 4) return 'รหัสผ่านควรมีความยาวอย่างน้อย 4 ตัวอักษร';
+  if (result.isConfirmed) {
+    showLoading('กำลังลบ...');
+    try {
+      // ✅ แทน google.script.run.deleteUserFromSheet()
+      const { token, user } = getSession();
+      await callAPI('deleteUser', { token, user, username });
+      Swal.fire('สำเร็จ', 'ลบผู้ใช้งานเรียบร้อย', 'success');
+      loadUserData();
+    } catch (err) {
+      Swal.fire('Error', err.toString(), 'error');
     }
-  }).then((result) => {
-    if (result.isConfirmed) {
-      showLoading('กำลังบันทึกรหัสผ่านใหม่...');
-      google.script.run
-        .withSuccessHandler(function(res) {
-          if (res.success) {
-            Swal.fire('สำเร็จ!', res.message, 'success');
-          } else {
-            Swal.fire('ล้มเหลว', res.message, 'error');
-          }
-        })
-        .updatePasswordInSheet(username, result.value);
-    }
-  });
-}
-
-// ฟังก์ชันสำหรับเปิดหน้าต่างเปลี่ยนรหัสผ่านตัวเอง
-function openChangePasswordModal() {
-  // ล้างค่าในช่อง input ทุกครั้งที่เปิด
-  document.getElementById('self-new-pass').value = '';
-  document.getElementById('self-confirm-pass').value = '';
-  
-  // สั่งเปิด Bootstrap Modal (id ต้องตรงกับใน HTML)
-  const myModal = new bootstrap.Modal(document.getElementById('selfChangePassModal'));
-  myModal.show();
-}
-
-function submitSelfChangePass() {
-  const p1 = document.getElementById('self-new-pass').value.trim();
-  const p2 = document.getElementById('self-confirm-pass').value.trim();
-  const currentLoginID = window.userLogin;
-
-  if (!currentLoginID || currentLoginID === "undefined") {
-    Swal.fire('ผิดพลาด', 'ไม่พบข้อมูลบัญชีผู้ใช้ กรุณาลอง Login ใหม่', 'error');
-    return;
   }
+}
 
-  if (!p1 || !p2) {
+async function submitUserForm() {
+  const targetUser = document.getElementById('target-username').value.trim();
+  const pass       = document.getElementById('target-password').value.trim();
+  const name       = document.getElementById('target-name').value.trim();
+  const dept       = document.getElementById('target-dept').value;
+  const isEdit     = document.getElementById('target-username').readOnly;
+
+  if (!targetUser || !pass || (!isEdit && !name)) {
     Swal.fire('คำเตือน', 'กรุณากรอกข้อมูลให้ครบถ้วน', 'warning');
     return;
   }
 
-  if (p1 !== p2) {
-    Swal.fire('ผิดพลาด', 'รหัสผ่านใหม่และยืนยันรหัสผ่านไม่ตรงกัน', 'error');
-    return;
-  }
-
   const passwordRegex = /^[A-Za-z0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]+$/;
-  if (!passwordRegex.test(p1)) {
-    Swal.fire({
-      icon: 'error',
-      title: 'รูปแบบไม่ถูกต้อง',
-      text: 'รหัสผ่านต้องเป็นภาษาอังกฤษ ตัวเลข และสัญลักษณ์เท่านั้น ห้ามมีภาษาไทยหรือเว้นวรรค',
-      confirmButtonColor: '#d33'
-    });
+  if (!passwordRegex.test(pass)) {
+    Swal.fire({ icon: 'error', title: 'รูปแบบรหัสผ่านไม่ถูกต้อง',
+      text: 'รหัสผ่านต้องเป็นภาษาอังกฤษ ตัวเลข และสัญลักษณ์เท่านั้น', confirmButtonColor: '#d33' });
     return;
   }
 
-  Swal.fire({
-    title: 'กำลังบันทึก...',
-    allowOutsideClick: false,
-    didOpen: () => { Swal.showLoading(); }
-  });
-  
-    google.script.run
-    .withSuccessHandler(function(res) {
-      Swal.close();
+  showLoading('กำลังบันทึกข้อมูล...');
+
+  try {
+    const { token, user } = getSession();
+
+    if (isEdit) {
+      // ✅ แทน google.script.run.updatePasswordInSheet() (admin เปลี่ยนให้คนอื่น)
+      await callAPI('updatePassword', { token, user, targetUser, newPass: pass });
+      Swal.fire('สำเร็จ', 'เปลี่ยนรหัสผ่านเรียบร้อย', 'success');
+    } else {
+      // ✅ แทน google.script.run.addUserToSheet()
+      const res = await callAPI('addUser', { token, user,
+        userData: { username: targetUser, password: pass, name, dept } });
       if (res.success) {
-        // 1. ปิด Modal
-        const modalElement = document.getElementById('selfChangePassModal');
-        const modalInstance = bootstrap.Modal.getInstance(modalElement);
-        if (modalInstance) modalInstance.hide();
-        
-        // ✨ จุดสำคัญ: สั่งทำลาย Token ใน Server ทันที
-        const currentToken = window.token; 
-        if (currentToken) {
-          google.script.run.destroyTokenOnServer(currentToken); // สั่งทำลายใน Cache
-        }
-
-        // 2. แจ้งสำเร็จ และเมื่อกด "ตกลง" ให้ Logout ทันที
-        Swal.fire({
-          icon: 'success',
-          title: 'สำเร็จ',
-          text: 'เปลี่ยนรหัสผ่านเรียบร้อยแล้ว ระบบจะนำคุณออกจากระบบเพื่อเข้าสู่ระบบใหม่',
-          confirmButtonText: 'ตกลง',
-          allowOutsideClick: false
-        }).then(() => {
-          // 3. ล้างข้อมูลในเครื่อง Browser
-          sessionStorage.clear();
-          window.token = null;
-
-          // 4. ดีดกลับหน้า Login ด้วย .replace 
-          // (การใช้ .replace จะช่วยแทนที่ประวัติหน้าปัจจุบัน ทำให้กด Back กลับมาได้ยากขึ้น)
-          const baseUrl = window.scriptUrl || "<?= scriptUrl ?>";
-          window.top.location.replace(baseUrl + "?page=login"); 
-        });
-        
+        Swal.fire('สำเร็จ', 'เพิ่มผู้ใช้ใหม่เรียบร้อย', 'success');
       } else {
         Swal.fire('ล้มเหลว', res.message, 'error');
+        return;
       }
-    })
-    .withFailureHandler(err => {
-        Swal.close();
-        Swal.fire('Error', 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้', 'error');
-    })
-    .updatePasswordInSheet(currentLoginID, p1);
+    }
+
+    toggleUserForm(false);
+    loadUserData();
+  } catch (err) {
+    Swal.fire('Error', err.toString(), 'error');
+  }
 }
 
-// ฟังก์ชันสลับการมองเห็นรหัสผ่านสำหรับ Change Password ตัวเอง
+function toggleUserForm(show, isEdit = false, username = '') {
+  const formArea      = document.getElementById('userFormArea');
+  const btnAdd        = document.getElementById('btnAddNewUser');
+  const title         = document.getElementById('formTitle');
+  const passwordInput = document.getElementById('target-password');
+  const eyeIcon       = document.getElementById('eyeIcon');
+
+  // รีเซ็ตสถานะ password input ทุกครั้ง
+  if (passwordInput) {
+    passwordInput.type = 'password';
+    if (eyeIcon) { eyeIcon.classList.remove('bi-eye-slash-fill'); eyeIcon.classList.add('bi-eye-fill'); }
+  }
+
+  if (show) {
+    $(formArea).slideDown(300);
+    btnAdd.style.display = 'none';
+    title.innerText = isEdit ? `เปลี่ยนรหัสผ่าน: ${username}` : 'เพิ่มผู้ใช้งานใหม่';
+
+    document.getElementById('target-username').value    = username;
+    document.getElementById('target-username').readOnly = isEdit;
+    document.getElementById('target-password').value    = '';
+
+    const extraFields = document.getElementById('extraFields');
+    if (isEdit) {
+      $(extraFields).hide();
+    } else {
+      $(extraFields).show();
+      document.getElementById('target-name').value = '';
+    }
+    document.getElementById('target-password').focus();
+  } else {
+    $(formArea).slideUp(200);
+    btnAdd.style.display = 'inline-block';
+  }
+}
+
+function editUserPassword(username) {
+  toggleUserForm(true, true, username);
+}
+
+function togglePasswordVisibility() {
+  const input   = document.getElementById('target-password');
+  const eyeIcon = document.getElementById('eyeIcon');
+  if (input.type === 'password') {
+    input.type = 'text';
+    eyeIcon.classList.replace('bi-eye-fill', 'bi-eye-slash-fill');
+  } else {
+    input.type = 'password';
+    eyeIcon.classList.replace('bi-eye-slash-fill', 'bi-eye-fill');
+  }
+}
+
+// ============================================================
+// Change Password (ตัวเอง)
+// ============================================================
+function openChangePasswordModal() {
+  document.getElementById('self-new-pass').value    = '';
+  document.getElementById('self-confirm-pass').value = '';
+  document.getElementById('self-new-pass').type     = 'password';
+  document.getElementById('self-confirm-pass').type = 'password';
+  new bootstrap.Modal(document.getElementById('selfChangePassModal')).show();
+}
+
 function toggleSelfPassword(inputId, btn) {
   const input = document.getElementById(inputId);
-  const icon = btn.querySelector('i');
+  const icon  = btn.querySelector('i');
   if (input.type === 'password') {
     input.type = 'text';
     icon.classList.replace('bi-eye-fill', 'bi-eye-slash-fill');
@@ -493,219 +368,105 @@ function toggleSelfPassword(inputId, btn) {
   }
 }
 
+async function submitSelfChangePass() {
+  const p1 = document.getElementById('self-new-pass').value.trim();
+  const p2 = document.getElementById('self-confirm-pass').value.trim();
 
+  // ✅ แทน window.userLogin
+  const { token, user, userAccount } = getSession();
+  const currentLoginID = userAccount;
 
-function toggleUserForm(show, isEdit = false, username = '') {
-  const formArea = document.getElementById('userFormArea');
-  const btnAdd = document.getElementById('btnAddNewUser');
-  const title = document.getElementById('formTitle');
-  
-  if (show) {
-    $(formArea).slideDown(300);
-    btnAdd.style.display = 'none';
-    title.innerText = isEdit ? `เปลี่ยนรหัสผ่าน: ${username}` : 'เพิ่มผู้ใช้งานใหม่';
-    
-    document.getElementById('target-username').value = username;
-    document.getElementById('target-username').readOnly = isEdit;
-    document.getElementById('target-password').value = '';
-    
-    const extraFields = document.getElementById('extraFields');
-    if (isEdit) {
-      $(extraFields).hide();
-    } else {
-      $(extraFields).show();
-      document.getElementById('target-name').value = '';
-    }
-    document.getElementById('target-password').focus();
-  } else {
-    $(formArea).slideUp(200);
-    btnAdd.style.display = 'inline-block';
-  }
-}
-
-function submitUserForm() {
-  const user = document.getElementById('target-username').value.trim();
-  const pass = document.getElementById('target-password').value.trim();
-  const name = document.getElementById('target-name').value.trim();
-  const dept = document.getElementById('target-dept').value;
-  const isEdit = document.getElementById('target-username').readOnly;
-
-  if (!user || !pass || (!isEdit && !name)) {
-    Swal.fire('คำเตือน', 'กรุณากรอกข้อมูลให้ครบถ้วน', 'warning');
+  if (!currentLoginID || currentLoginID === 'undefined') {
+    Swal.fire('ผิดพลาด', 'ไม่พบข้อมูลบัญชีผู้ใช้ กรุณาลอง Login ใหม่', 'error');
     return;
   }
+  if (!p1 || !p2) { Swal.fire('คำเตือน', 'กรุณากรอกข้อมูลให้ครบถ้วน', 'warning'); return; }
+  if (p1 !== p2)  { Swal.fire('ผิดพลาด', 'รหัสผ่านใหม่และยืนยันรหัสผ่านไม่ตรงกัน', 'error'); return; }
 
-  // 🚩 แก้ไข Regex: รองรับ A-Z, a-z, 0-9 และ Special Characters (!@#$%^&* เป็นต้น) 
-  // แต่ห้ามมีภาษาไทยหรือช่องว่าง
   const passwordRegex = /^[A-Za-z0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]+$/;
-  
-  if (!passwordRegex.test(pass)) {
-    Swal.fire({
-      icon: 'error',
-      title: 'รูปแบบรหัสผ่านไม่ถูกต้อง',
-      text: 'รหัสผ่านต้องเป็นภาษาอังกฤษ ตัวเลข และสัญลักษณ์เท่านั้น ห้ามมีภาษาไทยหรือเว้นวรรค',
-      confirmButtonColor: '#d33'
-    });
+  if (!passwordRegex.test(p1)) {
+    Swal.fire({ icon: 'error', title: 'รูปแบบไม่ถูกต้อง',
+      text: 'รหัสผ่านต้องเป็นภาษาอังกฤษ ตัวเลข และสัญลักษณ์เท่านั้น', confirmButtonColor: '#d33' });
     return;
   }
 
-  showLoading('กำลังบันทึกข้อมูล...');
-  
-  // ส่วน google.script.run เหมือนเดิม...
-  if (isEdit) {
-    google.script.run
-      .withSuccessHandler(() => {
-        Swal.fire('สำเร็จ', 'เปลี่ยนรหัสผ่านเรียบร้อย', 'success');
-        toggleUserForm(false);
-        loadUserData();
-      })
-      .updatePasswordInSheet(user, pass);
-  } else {
-    google.script.run
-      .withSuccessHandler(res => {
-        if (res.success) {
-          Swal.fire('สำเร็จ', 'เพิ่มผู้ใช้ใหม่เรียบร้อย', 'success');
-          toggleUserForm(false);
-          loadUserData();
-        } else {
-          Swal.fire('ล้มเหลว', res.message, 'error');
-        }
-      })
-      .addUserToSheet({username: user, password: pass, name: name, dept: dept});
-  }
-}
+  Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
-/**
- * ฟังก์ชันสลับการมองเห็นรหัสผ่าน
- */
-function togglePasswordVisibility() {
-  const passwordInput = document.getElementById('target-password');
-  const eyeIcon = document.getElementById('eyeIcon');
-  
-  if (passwordInput.type === 'password') {
-    // เปลี่ยนเป็นข้อความธรรมดา เพื่อให้มองเห็น
-    passwordInput.type = 'text';
-    // เปลี่ยนไอคอนเป็นรูปตาปิด หรือตาสีอื่นเพื่อให้รู้ว่าเปิดอยู่
-    eyeIcon.classList.remove('bi-eye-fill');
-    eyeIcon.classList.add('bi-eye-slash-fill');
-  } else {
-    // เปลี่ยนกลับเป็นรหัสผ่าน
-    passwordInput.type = 'password';
-    // เปลี่ยนไอคอนกลับเป็นรูปตาเปิด
-    eyeIcon.classList.remove('bi-eye-slash-fill');
-    eyeIcon.classList.add('bi-eye-fill');
-  }
-}
+  try {
+    // ✅ แทน google.script.run.updatePasswordInSheet()
+    const res = await callAPI('updatePassword', { token, user, targetUser: currentLoginID, newPass: p1 });
+    Swal.close();
 
-/**
- * ปรับปรุงฟังก์ชัน toggleUserForm ให้รีเซ็ตสถานะปุ่ม Show Password ทุกครั้งที่เปิดฟอร์ม
- */
-function toggleUserForm(show, isEdit = false, username = '') {
-  const formArea = document.getElementById('userFormArea');
-  const btnAdd = document.getElementById('btnAddNewUser');
-  const title = document.getElementById('formTitle');
-  
-  // เพิ่มการรีเซ็ต Input Password ให้เป็นแบบซ่อนทุกครั้งที่เปิด/ปิด
-  const passwordInput = document.getElementById('target-password');
-  const eyeIcon = document.getElementById('eyeIcon');
-  if (passwordInput) {
-    passwordInput.type = 'password';
-    if (eyeIcon) {
-      eyeIcon.classList.remove('bi-eye-slash-fill');
-      eyeIcon.classList.add('bi-eye-fill');
-    }
-  }
+    if (res.success) {
+      bootstrap.Modal.getInstance(document.getElementById('selfChangePassModal'))?.hide();
 
-  if (show) {
-    $(formArea).slideDown(300);
-    btnAdd.style.display = 'none';
-    title.innerText = isEdit ? `เปลี่ยนรหัสผ่าน: ${username}` : 'เพิ่มผู้ใช้งานใหม่';
-    
-    document.getElementById('target-username').value = username;
-    document.getElementById('target-username').readOnly = isEdit;
-    document.getElementById('target-password').value = '';
-    
-    const extraFields = document.getElementById('extraFields');
-    if (isEdit) {
-      $(extraFields).hide();
+      // ✅ แทน google.script.run.destroyTokenOnServer()
+      await callAPI('logout', { token, user });
+
+      Swal.fire({
+        icon: 'success', title: 'สำเร็จ',
+        text: 'เปลี่ยนรหัสผ่านเรียบร้อยแล้ว ระบบจะนำคุณออกจากระบบเพื่อเข้าสู่ระบบใหม่',
+        confirmButtonText: 'ตกลง', allowOutsideClick: false
+      }).then(() => { clearSession(); redirectToLogin(); });
     } else {
-      $(extraFields).show();
-      document.getElementById('target-name').value = '';
+      Swal.fire('ล้มเหลว', res.message, 'error');
     }
-    document.getElementById('target-password').focus();
-  } else {
-    $(formArea).slideUp(200);
-    btnAdd.style.display = 'inline-block';
+  } catch (err) {
+    Swal.close();
+    Swal.fire('Error', 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้', 'error');
   }
 }
 
-
-// แก้ไขฟังก์ชันเดิมในตารางให้มาเรียกฟอร์มนี้แทน
-function editUserPassword(username) {
-  toggleUserForm(true, true, username);
-}
-
-
-function initAdminPage() {
-    // สมมติว่าคุณเก็บข้อมูล User ไว้ในตัวแปร global หลังจาก Login
-    if (window.currentUser && window.currentUser.dept === "Admin") {
-        document.getElementById('adminLogSection').style.display = 'block';
-        loadEditLogs();
-    } else {
-        Swal.fire('Access Denied', 'หน้านี้สำหรับ Admin เท่านั้น', 'error');
-        // อาจจะ redirect ไปหน้าอื่น
-    }
-}
-
-// ฟังก์ชันสำหรับเปิด Modal
+// ============================================================
+// Audit Log
+// ============================================================
 function openLogModal() {
-
-  if (window.userDept !== 'Admin') {
+  const { dept } = getSession();
+  if (dept !== 'Admin') {
     Swal.fire('สิทธิ์ไม่เพียงพอ', 'เฉพาะ Admin เท่านั้นที่ดู Log ได้', 'warning');
     return;
   }
-
-  
-  const logModal = new bootstrap.Modal(document.getElementById('logModal'));
-  logModal.show();
+  new bootstrap.Modal(document.getElementById('logModal')).show();
 }
 
-// โหลดข้อมูลเมื่อ Modal กางเสร็จครั้งแรก
 document.getElementById('logModal').addEventListener('shown.bs.modal', function () {
   loadLogData();
 });
 
-// ฟังก์ชันโหลดข้อมูล (ใช้ทั้งตอนเปิด Modal และตอนกดปุ่ม Refresh)
-
-// --- 5. Logs System ---
-
-/**
- * โหลดข้อมูลประวัติการแก้ไข (Audit Logs)
- */
 async function loadLogData() {
-    const tableId = '#logTable';
-    const { dept } = getSession();
+  const tableId = '#logTable';
+  if (typeof $.fn.DataTable === 'undefined') return;
 
-    if ($.fn.DataTable.isDataTable(tableId)) {
-        $(tableId).DataTable().clear().destroy();
-    }
+  if ($.fn.DataTable.isDataTable(tableId)) {
+    $(tableId).DataTable().clear().destroy();
+    $(tableId).find('tbody').html(
+      '<tr><td colspan="6" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><br>กำลังโหลดข้อมูลล่าสุด...</td></tr>'
+    );
+  }
 
-    try {
-        const logs = await callAPI('getEditLogs', { userDept: dept });
-        $(tableId).DataTable({
-            data: logs,
-            columns: [
-                { data: 0, render: (d) => d ? new Date(d).toLocaleString('th-TH') : "" },
-                { data: 1 }, { data: 2 },
-                { data: 3, render: (d) => `<span class="badge bg-info text-dark">${d}</span>` },
-                { data: 4 },
-                { data: 5, render: (d) => `<div style="white-space: pre-line; font-size: 0.85rem;">${d}</div>` }
-            ],
-            order: [[0, 'desc']],
-            responsive: true,
-            language: { url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/th.json' }
-        });
-    } catch (err) {
-        console.error(err);
-    }
+  try {
+    // ✅ แทน google.script.run.getEditLogs()
+    const { token, user, dept } = getSession();
+    const logs = await callAPIGet({ action: 'getEditLogs', token, user, dept });
+
+    $('#logTable').DataTable({
+      data: logs,
+      columns: [
+        { data: 0, render: d => d ? new Date(d).toLocaleString('th-TH') : '' },
+        { data: 1 },
+        { data: 2 },
+        { data: 3, render: d => `<span class="badge bg-info text-dark">${d}</span>` },
+        { data: 4 },
+        { data: 5, render: d => `<div style="white-space: pre-line; font-size: 0.85rem; line-height: 1.4;">${d}</div>` }
+      ],
+      order: [[0, 'desc']],
+      responsive: true,
+      autoWidth: false,
+      language: { url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/th.json' }
+    });
+
+    setTimeout(() => { $(tableId).DataTable().columns.adjust(); }, 300);
+  } catch (err) {
+    Swal.fire('Error', 'ไม่สามารถรีเฟรชข้อมูลได้: ' + err, 'error');
+  }
 }

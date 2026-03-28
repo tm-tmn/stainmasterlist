@@ -1,32 +1,56 @@
-<script>
+/**
+ * script-admin.js
+ * สำหรับจัดการระบบ Admin, Master Settings, User Management และ Logs
+ */
+
+// --- 1. ตรวจสอบสิทธิ์การเข้าถึงเบื้องต้น ---
 (function() {
+    const { user, dept, token } = getSession();
     const urlParams = new URLSearchParams(window.location.search);
     const currentPage = urlParams.get('page');
-    const userDept = window.userDept; 
 
-    if (currentPage === 'admin' && userDept === 'Service Engineer') {
+    // ถ้าพยายามเข้าหน้า Admin แต่สิทธิ์ไม่ใช่ Admin หรือ AS
+    if (currentPage === 'admin' && dept === 'Service Engineer') {
         Swal.fire({
             icon: 'error',
             title: 'Access Denied',
-            text: 'สิทธิ์ระดับ L1 ไม่สามารถเข้าถึงหน้านี้ได้',
+            text: 'สิทธิ์ระดับ Service Engineer ไม่สามารถเข้าถึงหน้านี้ได้',
             confirmButtonText: 'ตกลง'
         }).then(() => { 
-            window.location.href = window.scriptUrl + "?page=main&user=" + encodeURIComponent(window.userName) + "&t=" + window.token;
+            window.location.href = "index.html?page=main";
         });
-        return; 
     }
 })();
 
+// --- 2. Event Listeners เมื่อโหลดหน้าจอ ---
+window.addEventListener('DOMContentLoaded', () => {
+    const userDept = getSession().dept;
+    
+    // ถ้าเป็นหน้า Admin และมีสิทธิ์ ให้โหลดข้อมูลทันที
+    if (document.getElementById('displayArea')) {
+        refreshData();
+    }
 
-  function showLoading(msg = 'กำลังดำเนินการ...') {
+    // ตั้งค่า Log Modal Event
+    const logModalElem = document.getElementById('logModal');
+    if (logModalElem) {
+        logModalElem.addEventListener('shown.bs.modal', function () {
+            loadLogData();
+        });
+    }
+});
+
+
+/**
+ * ฟังก์ชันแสดง Loading Overlay
+ */
+function showLoading(msg = 'กำลังดำเนินการ...') {
     Swal.fire({
-      title: msg,
-      allowOutsideClick: false,
-      didOpen: () => {
-        Swal.showLoading();
-      }
+        title: msg,
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
     });
-  }
+}
 
   window.onload = function() {
       const userDept = window.userDept;
@@ -70,228 +94,242 @@
     });
   }
 
-  // --- 3. ปรับปรุงฟังก์ชัน refreshData เพื่อคุมสิทธิ์ Edit/Delete ในตัว ---
-    function refreshData() {
-        if (typeof showLoading === "function") {
-            showLoading('กำลังโหลดข้อมูล...');
-        }
+/**
+ * โหลดข้อมูล Master Settings ทั้งหมด (Dropdown options)
+ */
+async function refreshData() {
+    showLoading('กำลังโหลดข้อมูล...');
 
-        google.script.run
-          .withSuccessHandler(function(options) {
-            const headerSelect = document.getElementById('headerSelect');
-            const displayArea = document.getElementById('displayArea');
-            const userDept = window.userDept;
-            
-            headerSelect.innerHTML = '';
-            displayArea.innerHTML = '';
+    try {
+        const options = await callAPI('getMasterSettings');
+        const headerSelect = document.getElementById('headerSelect');
+        const displayArea = document.getElementById('displayArea');
+        
+        if (!headerSelect || !displayArea) return;
 
-            for (let header in options) {
-              let opt = document.createElement('option');
-              opt.value = header;
-              opt.text = header;
-              headerSelect.appendChild(opt);
+        headerSelect.innerHTML = '';
+        displayArea.innerHTML = '';
 
-              let html = `
-                <div class="col-md-4 col-lg-3">
-                  <div class="data-card">
-                    <div class="data-card-header"><span title="${header}">${header}</span></div>
+        for (let header in options) {
+            // เพิ่มตัวเลือกใน Dropdown สำหรับ Add New
+            let opt = document.createElement('option');
+            opt.value = header;
+            opt.text = header;
+            headerSelect.appendChild(opt);
+
+            // สร้าง Card แสดงรายการข้อมูล
+            let html = `
+                <div class="col-md-4 col-lg-3 mb-3">
+                  <div class="data-card shadow-sm border rounded">
+                    <div class="data-card-header bg-light p-2 border-bottom fw-bold">
+                        <span title="${header}">${header}</span>
+                    </div>
                     <div class="card-body p-0 card-scroll-area" style="max-height: 250px; overflow-y: auto;">
                       <ul class="list-group list-group-flush">`;
               
-              options[header].forEach(item => {
+            options[header].forEach(item => {
                 if (item !== "") {
-                  // 🚩 เช็คสิทธิ์: ถ้าเป็น Admin ถึงจะเห็นปุ่มแก้ไข/ลบ (สมมติว่า L2 แก้ไม่ได้)
-                  // แต่ถ้าคุณให้ L2 แก้ได้ด้วย ก็ไม่ต้องใส่เงื่อนไขครอบไอคอน
-                  html += `
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                      <span class="text-truncate">${item}</span>
-                      <div class="btn-group action-icons">
-                        <i class="bi bi-pencil-square text-primary me-2" role="button" onclick="editOption('${header}', '${item}')"></i>
-                        <i class="bi bi-trash3 text-danger" role="button" onclick="deleteOption('${header}', '${item}')"></i>
-                      </div>
-                    </li>`;
+                    html += `
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                          <span class="text-truncate" style="max-width: 150px;">${item}</span>
+                          <div class="btn-group action-icons">
+                            <i class="bi bi-pencil-square text-primary me-2" role="button" onclick="editOption('${header}', '${item}')"></i>
+                            <i class="bi bi-trash3 text-danger" role="button" onclick="deleteOption('${header}', '${item}')"></i>
+                          </div>
+                        </li>`;
                 }
-              });
-              html += `</ul></div></div></div>`;
-              displayArea.innerHTML += html;
-            }
-            Swal.close(); 
-          })
-          .withFailureHandler(function(err) {
-            Swal.fire('Error', 'โหลดข้อมูลล้มเหลว: ' + err, 'error');
-          })
-          .getMasterSettings();
+            });
+            html += `</ul></div></div></div>`;
+            displayArea.insertAdjacentHTML('beforeend', html);
+        }
+        Swal.close(); 
+    } catch (err) {
+        Swal.fire('Error', 'โหลดข้อมูลล้มเหลว: ' + err, 'error');
     }
+}
 
-  /**
-   * ฟังก์ชันบันทึกข้อมูลใหม่ (Add)
-   */
-  function saveNewOption() {
+
+/**
+ * เพิ่ม Option ใหม่
+ */
+async function saveNewOption() {
     const head = document.getElementById('headerSelect').value;
     const val = document.getElementById('newValue').value.trim();
 
     if(!val) {
-      Swal.fire('คำเตือน', 'กรุณากรอกข้อมูลที่ต้องการเพิ่ม', 'warning');
-      return;
+        Swal.fire('คำเตือน', 'กรุณากรอกข้อมูลที่ต้องการเพิ่ม', 'warning');
+        return;
     }
 
     showLoading('กำลังบันทึกข้อมูล...');
 
-    google.script.run
-      .withSuccessHandler(function(res) {
-        document.getElementById('newValue').value = ''; // ล้างช่องกรอก
-        Swal.fire({
-          icon: 'success',
-          title: 'สำเร็จ',
-          text: res,
-          timer: 1500,
-          showConfirmButton: false
-        }).then(() => {
-          refreshData(); // โหลดข้อมูลใหม่ทันที
-        });
-      })
-      .withFailureHandler(function(err) {
+    try {
+        const res = await callAPI('addOptionToSheet', { header: head, value: val });
+        document.getElementById('newValue').value = '';
+        await Swal.fire({ icon: 'success', title: 'สำเร็จ', text: res, timer: 1500, showConfirmButton: false });
+        refreshData();
+    } catch (err) {
         Swal.fire('Error', 'บันทึกไม่สำเร็จ: ' + err, 'error');
-      })
-      .addOptionToSheet(head, val);
-  }
-
-  /**
-   * ฟังก์ชันแก้ไขข้อมูล (Edit/Rename)
-   */
-  function editOption(head, oldVal) {
-    Swal.fire({
-      title: 'แก้ไขข้อมูล',
-      html: `แก้ไขค่าในหัวข้อ: <b>${head}</b>`,
-      input: 'text',
-      inputValue: oldVal,
-      showCancelButton: true,
-      confirmButtonText: 'บันทึกการแก้ไข',
-      cancelButtonText: 'ยกเลิก',
-      confirmButtonColor: '#0d6efd',
-      inputValidator: (value) => {
-        if (!value || value.trim() === "") return 'กรุณากรอกข้อมูลใหม่!'
-      }
-    }).then((result) => {
-      if (result.isConfirmed) {
-        showLoading('กำลังอัปเดต...');
-        google.script.run
-          .withSuccessHandler(function(res) {
-            Swal.fire({
-              icon: 'success',
-              title: 'แก้ไขเรียบร้อย',
-              timer: 1500,
-              showConfirmButton: false
-            }).then(() => {
-              refreshData();
-            });
-          })
-          .editOptionInSheet(head, oldVal, result.value);
-      }
-    });
-  }
-
-  /**
-   * ฟังก์ชันลบข้อมูล (Delete)
-   */
-  function deleteOption(head, val) {
-    Swal.fire({
-      title: 'ยืนยันการลบ?',
-      text: `คุณต้องการลบ "${val}" ออกจากหัวข้อ "${head}" ใช่หรือไม่?`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#dc3545',
-      cancelButtonColor: '#6c757d',
-      confirmButtonText: 'ใช่, ลบเลย',
-      cancelButtonText: 'ยกเลิก'
-    }).then((result) => {
-      if (result.isConfirmed) {
-        showLoading('กำลังลบข้อมูล...');
-        google.script.run
-          .withSuccessHandler(function(res) {
-            Swal.fire({
-              icon: 'success',
-              title: 'ลบข้อมูลสำเร็จ',
-              timer: 1000,
-              showConfirmButton: false
-            }).then(() => {
-              refreshData();
-            });
-          })
-          .deleteOptionFromSheet(head, val);
-      }
-    });
-  }
-
-// 1. ฟังก์ชันเปิด Modal
-function openManageUserModal() {
-  const userDept = window.userDept;
-
-  // 🚩 ตรวจสอบสิทธิ์ภายในฟังก์ชัน
-  if (userDept !== 'Admin') {
-    Swal.fire({
-      icon: 'warning',
-      title: 'สิทธิ์ไม่เพียงพอ',
-      text: 'เฉพาะ Admin เท่านั้นที่สามารถจัดการผู้ใช้งานได้',
-      confirmButtonColor: '#3085d6'
-    });
-    return; // หยุดการทำงาน ไม่เปิด Modal
-  }
-
-  // ถ้าเป็น Admin ให้ทำงานต่อตามปกติ
-  const modalElem = document.getElementById('userModal');
-  let userModal = bootstrap.Modal.getInstance(modalElem);
-  if (!userModal) {
-    userModal = new bootstrap.Modal(modalElem);
-  }
-  userModal.show();
-  loadUserData();
+    }
 }
 
-// 2. ฟังก์ชันโหลดข้อมูล (แก้ไข ID และเพิ่มปุ่ม Add)
-function loadUserData() {
-  showLoading('กำลังโหลดข้อมูลผู้ใช้งาน...');
-  google.script.run
-    .withSuccessHandler(function(users) {
-      const area = document.getElementById('userTableArea');
-      let html = `
-        <div class="table-responsive">
-          <table class="table table-hover align-middle border">
-            <thead class="table-light">
-              <tr>
-                <th>Username</th>
-                <th>Name</th>
-                <th>Dept</th>
-                <th class="text-center">Action</th>
-              </tr>
-            </thead>
-            <tbody>`;
-      
-      users.forEach((user) => {
-        const isAdmin = (user.dept === 'Admin');
+/**
+ * แก้ไขชื่อ Option
+ */
+async function editOption(head, oldVal) {
+    const { value: newVal } = await Swal.fire({
+        title: 'แก้ไขข้อมูล',
+        html: `แก้ไขค่าในหัวข้อ: <b>${head}</b>`,
+        input: 'text',
+        inputValue: oldVal,
+        showCancelButton: true,
+        confirmButtonText: 'บันทึกการแก้ไข',
+        inputValidator: (value) => { if (!value) return 'กรุณากรอกข้อมูลใหม่!' }
+    });
 
-        html += `
-          <tr>
-            <td><code>${user.username}</code></td>
-            <td>${user.name}</td>
-            <td><span class="badge bg-info text-dark">${user.dept}</span></td>
-            <td class="text-center">
-              <button class="btn btn-sm btn-outline-primary me-1" onclick="editUserPassword('${user.username}')" title="เปลี่ยนรหัสผ่าน">
-                <i class="bi bi-key"></i>
-              </button>
-              ${!isAdmin ? `
-                <button class="btn btn-sm btn-outline-danger" onclick="deleteUser('${user.username}')" title="ลบผู้ใช้">
-                  <i class="bi bi-trash"></i>
-                </button>` : `<button class="btn btn-sm btn-light text-muted" disabled><i class="bi bi-trash"></i></button>`}
-            </td>
-          </tr>`;
-      });
-      
-      html += `</tbody></table></div>`;
-      area.innerHTML = html;
-      Swal.close();
-    })
-    .getUserList();
+    if (newVal) {
+        showLoading('กำลังอัปเดต...');
+        try {
+            await callAPI('editOptionInSheet', { header: head, oldValue: oldVal, newValue: newVal });
+            await Swal.fire({ icon: 'success', title: 'แก้ไขเรียบร้อย', timer: 1500, showConfirmButton: false });
+            refreshData();
+        } catch (err) {
+            Swal.fire('Error', err.toString(), 'error');
+        }
+    }
+}
+
+/**
+ * ลบ Option
+ */
+async function deleteOption(head, val) {
+    const confirm = await Swal.fire({
+        title: 'ยืนยันการลบ?',
+        text: `คุณต้องการลบ "${val}" ออกจากหัวข้อ "${head}" ใช่หรือไม่?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        confirmButtonText: 'ใช่, ลบเลย'
+    });
+
+    if (confirm.isConfirmed) {
+        showLoading('กำลังลบข้อมูล...');
+        try {
+            await callAPI('deleteOptionFromSheet', { header: head, value: val });
+            await Swal.fire({ icon: 'success', title: 'ลบข้อมูลสำเร็จ', timer: 1000, showConfirmButton: false });
+            refreshData();
+        } catch (err) {
+            Swal.fire('Error', err.toString(), 'error');
+        }
+    }
+}
+
+// --- 4. User Management (Admin Only) ---
+
+/**
+ * เปิด Modal จัดการผู้ใช้
+ */
+function openManageUserModal() {
+    const { dept } = getSession();
+    if (dept !== 'Admin') {
+        Swal.fire({ icon: 'warning', title: 'สิทธิ์ไม่เพียงพอ', text: 'เฉพาะ Admin เท่านั้นที่สามารถจัดการผู้ใช้งานได้' });
+        return;
+    }
+    const modal = new bootstrap.Modal(document.getElementById('userModal'));
+    modal.show();
+    loadUserData();
+}
+
+/**
+ * โหลดรายชื่อผู้ใช้ทั้งหมด
+ */
+async function loadUserData() {
+    showLoading('กำลังโหลดข้อมูลผู้ใช้งาน...');
+    try {
+        const users = await callAPI('getUserList');
+        const area = document.getElementById('userTableArea');
+        let html = `
+            <div class="table-responsive">
+              <table class="table table-hover align-middle border">
+                <thead class="table-light">
+                  <tr>
+                    <th>Username</th><th>Name</th><th>Dept</th><th class="text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody>`;
+        
+        users.forEach((u) => {
+            const isAdmin = (u.dept === 'Admin');
+            html += `
+              <tr>
+                <td><code>${u.username}</code></td>
+                <td>${u.name}</td>
+                <td><span class="badge bg-info text-dark">${u.dept}</span></td>
+                <td class="text-center">
+                  <button class="btn btn-sm btn-outline-primary me-1" onclick="toggleUserForm(true, true, '${u.username}')" title="เปลี่ยนรหัสผ่าน">
+                    <i class="bi bi-key"></i>
+                  </button>
+                  ${!isAdmin ? `
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteUser('${u.username}')">
+                      <i class="bi bi-trash"></i>
+                    </button>` : `<button class="btn btn-sm btn-light text-muted" disabled><i class="bi bi-trash"></i></button>`}
+                </td>
+              </tr>`;
+        });
+        area.innerHTML = html + `</tbody></table></div>`;
+        Swal.close();
+    } catch (err) {
+        Swal.fire('Error', err.toString(), 'error');
+    }
+}
+
+/**
+ * เพิ่มผู้ใช้งานใหม่ (ใช้ Swal Form)
+ */
+async function addNewUserForm() {
+    // แก้ปัญหา Focus ของ Bootstrap Modal ซ้อน Swal
+    const userModalElem = document.getElementById('userModal');
+    userModalElem.removeAttribute('tabindex');
+
+    const { value: formValues } = await Swal.fire({
+        title: 'เพิ่มผู้ใช้งานใหม่',
+        html: `
+            <div class="text-start">
+                <label class="small fw-bold">Username</label><input id="new-username" class="swal2-input mt-1">
+                <label class="small fw-bold">Password</label><input id="new-password" type="password" class="swal2-input mt-1">
+                <label class="small fw-bold">Full Name</label><input id="new-name" class="swal2-input mt-1">
+                <label class="small fw-bold">Department</label>
+                <select id="new-dept" class="swal2-input mt-1">
+                    <option value="Application Specialist">Application Specialist</option>
+                    <option value="Service Engineer">Service Engineer</option>
+                    <option value="Admin">Admin</option>
+                </select>
+            </div>`,
+        focusConfirm: false,
+        showCancelButton: true,
+        preConfirm: () => {
+            return {
+                username: document.getElementById('new-username').value.trim(),
+                password: document.getElementById('new-password').value.trim(),
+                name: document.getElementById('new-name').value.trim(),
+                dept: document.getElementById('new-dept').value
+            }
+        }
+    });
+
+    if (formValues) {
+        if (!formValues.username || !formValues.password) return Swal.fire('ข้อมูลไม่ครบ');
+        showLoading('กำลังบันทึก...');
+        try {
+            const res = await callAPI('addUserToSheet', formValues);
+            if (res.success) {
+                Swal.fire('สำเร็จ', 'เพิ่มผู้ใช้เรียบร้อย', 'success');
+                loadUserData();
+            } else {
+                Swal.fire('ล้มเหลว', res.message, 'error');
+            }
+        } catch (err) { Swal.fire('Error', err.toString(), 'error'); }
+    }
 }
 
 // ฟังก์ชันลบ User
@@ -455,73 +493,7 @@ function toggleSelfPassword(inputId, btn) {
   }
 }
 
-function addNewUserForm() {
-  // 1. ยกเลิกกลไกการดักจับ Focus ของ Bootstrap ทุกกรณี
-  $.fn.modal.Constructor.prototype._enforceFocus = function() {}; 
-  
-  const userModalElem = document.getElementById('userModal');
-  const originalTabindex = userModalElem.getAttribute('tabindex');
-  userModalElem.removeAttribute('tabindex');
 
-  Swal.fire({
-    title: 'เพิ่มผู้ใช้งานใหม่',
-    html: `
-      <div class="text-start">
-        <label class="form-label small fw-bold">Username</label>
-        <input id="new-username" class="swal2-input mt-0" placeholder="Username">
-        <label class="form-label small fw-bold">Password</label>
-        <input id="new-password" type="password" class="swal2-input mt-0" placeholder="Password">
-        <label class="form-label small fw-bold">Full Name</label>
-        <input id="new-name" class="swal2-input mt-0" placeholder="Name">
-        <label class="form-label small fw-bold">Department</label>
-        <select id="new-dept" class="swal2-input mt-0">
-          <option value="Application Specialist">Application Specialist</option>
-          <option value="Service Engineer">Service Engineer</option>
-        </select>
-      </div>
-    `,
-    showCancelButton: true,
-    confirmButtonText: 'บันทึก',
-    cancelButtonText: 'ยกเลิก',
-    focusConfirm: false,
-    // 2. บังคับให้ Input แรกรับโฟกัสทันทีเมื่อเปิด Swal
-    didOpen: () => {
-      const input = document.getElementById('new-username');
-      if (input) input.focus();
-    },
-    didClose: () => {
-      if (originalTabindex !== null) {
-        userModalElem.setAttribute('tabindex', originalTabindex);
-      }
-    },
-    preConfirm: () => {
-      const username = document.getElementById('new-username').value.trim();
-      const password = document.getElementById('new-password').value.trim();
-      const name = document.getElementById('new-name').value.trim();
-      const dept = document.getElementById('new-dept').value;
-
-      if (!username || !password || !name || !dept) {
-        Swal.showValidationMessage('กรุณากรอกข้อมูลให้ครบทุกช่อง');
-        return false;
-      }
-      return { username, password, name, dept };
-    }
-  }).then((result) => {
-    if (result.isConfirmed) {
-      showLoading('กำลังบันทึก...');
-      google.script.run
-        .withSuccessHandler(function(res) {
-          if (res.success) {
-            Swal.fire('สำเร็จ', 'เพิ่มผู้ใช้งานเรียบร้อย', 'success');
-            loadUserData();
-          } else {
-            Swal.fire('ล้มเหลว', res.message, 'error');
-          }
-        })
-        .addUserToSheet(result.value);
-    }
-  });
-}
 
 function toggleUserForm(show, isEdit = false, username = '') {
   const formArea = document.getElementById('userFormArea');
@@ -705,52 +677,35 @@ document.getElementById('logModal').addEventListener('shown.bs.modal', function 
 
 // ฟังก์ชันโหลดข้อมูล (ใช้ทั้งตอนเปิด Modal และตอนกดปุ่ม Refresh)
 
-function loadLogData() {
-  const tableId = '#logTable';
-  
-  // ตรวจสอบ Library ก่อนรัน
-  if (typeof $.fn.DataTable === 'undefined') return;
+// --- 5. Logs System ---
 
-  // เคลียร์ข้อมูลเก่าและแสดงสถานะ Loading
-  if ($.fn.DataTable.isDataTable(tableId)) {
-    $(tableId).DataTable().clear().destroy();
-    $(tableId).find('tbody').html('<tr><td colspan="6" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><br>กำลังโหลดข้อมูลล่าสุด...</td></tr>');
-  }
+/**
+ * โหลดข้อมูลประวัติการแก้ไข (Audit Logs)
+ */
+async function loadLogData() {
+    const tableId = '#logTable';
+    const { dept } = getSession();
 
-  google.script.run
-    .withSuccessHandler(function(logs) {
-      $('#logTable').DataTable({
-        data: logs,
-        columns: [
-          { data: 0, render: (d) => d ? new Date(d).toLocaleString('th-TH') : "" },
-          { data: 1 },
-          { data: 2 },
-          { 
-            data: 3, 
-            render: (d) => `<span class="badge bg-info text-dark">${d}</span>` 
-          },
-          { data: 4 },
-          { 
-            data: 5,
-            render: function(data) {
-              // ใช้สไตล์ pre-line เพื่อให้แสดงบรรทัดใหม่ตามที่บันทึกมาใน Google Sheet
-              return `<div style="white-space: pre-line; font-size: 0.85rem; line-height: 1.4;">${data}</div>`;
-            }
-          }
-        ],
-        order: [[0, 'desc']],
-        responsive: true,
-        autoWidth: false,
-        language: {
-          url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/th.json'
-        }
-      });
-      // บังคับให้ตารางคำนวณขนาดใหม่ทันที
-      setTimeout(() => { $(tableId).DataTable().columns.adjust(); }, 300);
-    })
-    .withFailureHandler(err => {
-      Swal.fire('Error', 'ไม่สามารถรีเฟรชข้อมูลได้: ' + err, 'error');
-    })
-    .getEditLogs(window.userDept);
+    if ($.fn.DataTable.isDataTable(tableId)) {
+        $(tableId).DataTable().clear().destroy();
+    }
+
+    try {
+        const logs = await callAPI('getEditLogs', { userDept: dept });
+        $(tableId).DataTable({
+            data: logs,
+            columns: [
+                { data: 0, render: (d) => d ? new Date(d).toLocaleString('th-TH') : "" },
+                { data: 1 }, { data: 2 },
+                { data: 3, render: (d) => `<span class="badge bg-info text-dark">${d}</span>` },
+                { data: 4 },
+                { data: 5, render: (d) => `<div style="white-space: pre-line; font-size: 0.85rem;">${d}</div>` }
+            ],
+            order: [[0, 'desc']],
+            responsive: true,
+            language: { url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/th.json' }
+        });
+    } catch (err) {
+        console.error(err);
+    }
 }
-</script>

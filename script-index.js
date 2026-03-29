@@ -22,6 +22,8 @@ async function handleLogin() {
   Swal.fire({
     title: 'กำลังตรวจสอบ...',
     allowOutsideClick: false,
+    showConfirmButton: false,
+    heightAuto: false,
     didOpen: () => Swal.showLoading()
   });
 

@@ -1,11 +1,12 @@
 body {
-        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-        height: 100vh !important; /* บังคับความสูงคงที่ */
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        margin: 0;
-      }
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    min-height: 100vh; /* ใช้ min-height จะยืดหยุ่นกว่า */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    overflow-x: hidden; /* กัน scrollbar แนวนอนโผล่ */
+}
 
       /* ป้องกัน SweetAlert2 มาแก้ความสูง auto */
       html.swal2-shown, 

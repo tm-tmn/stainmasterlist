@@ -532,15 +532,13 @@ async function submitFormData(form) {
   }
 }
 
-// ============================================================
-// Load From Database Feature
-// ============================================================
 let cachedDBData = null;
 
 async function openLoadFromDBModal() {
   const modal = new bootstrap.Modal(document.getElementById('loadFromDBModal'));
   modal.show();
 
+  // reset search
   document.getElementById('dbSearchInput').value = '';
 
   if (!cachedDBData) {
@@ -549,17 +547,7 @@ async function openLoadFromDBModal() {
         <div class="spinner-border text-primary" role="status"></div>
         <div class="mt-2 text-muted small">กำลังโหลดข้อมูล...</div>
       </td></tr>`;
-     const rows = data.slice(1).reverse();
-      cachedDBData = data;
-      window._allDBRows = rows;  // ✅ เก็บ master copy
-      renderDBPickerTable(rows);
-   } else {
-      const rows = cachedDBData.slice(1).reverse();
-      window._allDBRows = rows;  // ✅ เก็บ master copy
-      renderDBPickerTable(rows);
-   }
-  
-  }
+
     try {
       const { token, user } = getSession();
       const data = await callAPIGet({ action: 'getStainSheetData', token, user });
@@ -570,16 +558,22 @@ async function openLoadFromDBModal() {
         return;
       }
 
-      // data[0] = headers, data[1..] = rows (เรียงจากใหม่ไปเก่า)
+      // data[0] = headers, data[1..] = rows
+      const rows = data.slice(1).reverse();
       cachedDBData = data;
-      renderDBPickerTable(data.slice(1).reverse()); // reverse เพื่อให้ล่าสุดขึ้นก่อน
+      window._allDBRows = rows;  // ✅ เก็บ master copy ตามที่คุณต้องการ
+      
+      renderDBPickerTable(rows);
 
     } catch (err) {
       document.getElementById('dbPickerBody').innerHTML =
         `<tr><td colspan="7" class="text-center py-4 text-danger">โหลดข้อมูลไม่สำเร็จ: ${err}</td></tr>`;
     }
   } else {
-    renderDBPickerTable(cachedDBData.slice(1).reverse());
+    // กรณีมี Cache แล้ว
+    const rows = cachedDBData.slice(1).reverse();
+    window._allDBRows = rows;  // ✅ เก็บ master copy ตามที่คุณต้องการ
+    renderDBPickerTable(rows);
   }
 }
 

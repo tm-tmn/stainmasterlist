@@ -541,7 +541,8 @@ async function openLoadFromDBModal() {
   const modal = new bootstrap.Modal(document.getElementById('loadFromDBModal'));
   modal.show();
 
-  // โหลดข้อมูลครั้งแรก หรือใช้ cache
+  document.getElementById('dbSearchInput').value = '';
+
   if (!cachedDBData) {
     document.getElementById('dbPickerBody').innerHTML = `
       <tr><td colspan="7" class="text-center py-4">
@@ -579,8 +580,11 @@ function renderDBPickerTable(rows) {
     return;
   }
 
-  tbody.innerHTML = rows.map((row, idx) => `
-    <tr style="cursor: pointer;" onclick="selectDBRecord(${idx})">
+  tbody.innerHTML = rows.map((row, idx) => {
+    // ✅ ใช้ index ของ _allDBRows แทน idx ที่ถูก filter แล้ว
+    const realIdx = window._allDBRows.indexOf(row);
+    return `
+    <tr style="cursor: pointer;" onclick="selectDBRecord(${realIdx})">
       <td class="px-3">${row[1] || '-'}</td>
       <td class="px-3"><code>${row[2] || '-'}</code></td>
       <td class="px-3">${row[9] || '-'}</td>
@@ -589,31 +593,31 @@ function renderDBPickerTable(rows) {
       <td class="px-3">${row[40] || '-'}</td>
       <td class="text-center px-3">
         <button class="btn btn-sm btn-primary rounded-pill px-3"
-          onclick="event.stopPropagation(); selectDBRecord(${idx})">
+          onclick="event.stopPropagation(); selectDBRecord(${realIdx})">
           <i class="bi bi-check-lg me-1"></i>เลือก
         </button>
       </td>
-    </tr>
-  `).join('');
-
-  // เก็บ rows ไว้สำหรับ filter
-  window._dbPickerRows = rows;
+    </tr>`;
+  }).join('');
 }
 
 function filterDBTable(keyword) {
-  if (!window._dbPickerRows) return;
+  if (!window._allDBRows) return;
   const kw = keyword.toLowerCase().trim();
+
+  // ✅ filter จาก _allDBRows เสมอ ไม่ใช่ _dbPickerRows
   const filtered = kw
-    ? window._dbPickerRows.filter(row =>
-        (row[1] || '').toLowerCase().includes(kw) ||  // Site
-        (row[2] || '').toLowerCase().includes(kw)     // S/N
+    ? window._allDBRows.filter(row =>
+        (row[1] || '').toLowerCase().includes(kw) ||
+        (row[2] || '').toLowerCase().includes(kw)
       )
-    : window._dbPickerRows;
+    : window._allDBRows; // ✅ ถ้าว่างให้แสดงทั้งหมด
+
   renderDBPickerTable(filtered);
 }
 
 function selectDBRecord(idx) {
-  const rows = window._dbPickerRows;
+  const rows = window._allDBRows;
   if (!rows || !rows[idx]) return;
 
   const row = rows[idx];

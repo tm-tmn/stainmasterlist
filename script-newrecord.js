@@ -531,3 +531,208 @@ async function submitFormData(form) {
     btn.disabled = false;
   }
 }
+
+// ============================================================
+// Load From Database Feature
+// ============================================================
+let cachedDBData = null;
+
+async function openLoadFromDBModal() {
+  const modal = new bootstrap.Modal(document.getElementById('loadFromDBModal'));
+  modal.show();
+
+  // โหลดข้อมูลครั้งแรก หรือใช้ cache
+  if (!cachedDBData) {
+    document.getElementById('dbPickerBody').innerHTML = `
+      <tr><td colspan="7" class="text-center py-4">
+        <div class="spinner-border text-primary" role="status"></div>
+        <div class="mt-2 text-muted small">กำลังโหลดข้อมูล...</div>
+      </td></tr>`;
+
+    try {
+      const { token, user } = getSession();
+      const data = await callAPIGet({ action: 'getStainSheetData', token, user });
+
+      if (!data || data.length <= 1) {
+        document.getElementById('dbPickerBody').innerHTML =
+          '<tr><td colspan="7" class="text-center py-4 text-muted">ไม่พบข้อมูลในระบบ</td></tr>';
+        return;
+      }
+
+      // data[0] = headers, data[1..] = rows (เรียงจากใหม่ไปเก่า)
+      cachedDBData = data;
+      renderDBPickerTable(data.slice(1).reverse()); // reverse เพื่อให้ล่าสุดขึ้นก่อน
+
+    } catch (err) {
+      document.getElementById('dbPickerBody').innerHTML =
+        `<tr><td colspan="7" class="text-center py-4 text-danger">โหลดข้อมูลไม่สำเร็จ: ${err}</td></tr>`;
+    }
+  } else {
+    renderDBPickerTable(cachedDBData.slice(1).reverse());
+  }
+}
+
+function renderDBPickerTable(rows) {
+  const tbody = document.getElementById('dbPickerBody');
+  if (!rows || rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">ไม่พบข้อมูล</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = rows.map((row, idx) => `
+    <tr style="cursor: pointer;" onclick="selectDBRecord(${idx})">
+      <td class="px-3">${row[1] || '-'}</td>
+      <td class="px-3"><code>${row[2] || '-'}</code></td>
+      <td class="px-3">${row[9] || '-'}</td>
+      <td class="px-3">${row[10] || '-'}</td>
+      <td class="px-3">${row[11] || '-'}</td>
+      <td class="px-3">${row[40] || '-'}</td>
+      <td class="text-center px-3">
+        <button class="btn btn-sm btn-primary rounded-pill px-3"
+          onclick="event.stopPropagation(); selectDBRecord(${idx})">
+          <i class="bi bi-check-lg me-1"></i>เลือก
+        </button>
+      </td>
+    </tr>
+  `).join('');
+
+  // เก็บ rows ไว้สำหรับ filter
+  window._dbPickerRows = rows;
+}
+
+function filterDBTable(keyword) {
+  if (!window._dbPickerRows) return;
+  const kw = keyword.toLowerCase().trim();
+  const filtered = kw
+    ? window._dbPickerRows.filter(row =>
+        (row[1] || '').toLowerCase().includes(kw) ||  // Site
+        (row[2] || '').toLowerCase().includes(kw)     // S/N
+      )
+    : window._dbPickerRows;
+  renderDBPickerTable(filtered);
+}
+
+function selectDBRecord(idx) {
+  const rows = window._dbPickerRows;
+  if (!rows || !rows[idx]) return;
+
+  const row = rows[idx];
+
+  // ปิด modal
+  bootstrap.Modal.getInstance(document.getElementById('loadFromDBModal'))?.hide();
+
+  // แจ้ง user
+  Swal.fire({
+    icon: 'info',
+    title: 'กำลัง Fill ข้อมูล...',
+    text: 'Site และ S/N จะถูก reset ให้กรอกใหม่',
+    timer: 1500,
+    showConfirmButton: false
+  });
+
+  // รอให้ modal ปิดก่อน
+  setTimeout(() => fillFormFromDBRecord(row), 400);
+}
+
+function fillFormFromDBRecord(row) {
+  const form = document.getElementById('stainForm');
+
+  // helper: set value ใน select หรือ input
+  const setField = (name, value) => {
+    const el = form.querySelector(`[name="${name}"]`);
+    if (!el) return;
+    if (el.tagName === 'SELECT') {
+      // ถ้าไม่มี option นี้ ให้เพิ่มชั่วคราว
+      const exists = Array.from(el.options).some(o => o.value === value);
+      if (!exists && value && value !== '-') {
+        el.add(new Option(value, value));
+      }
+      el.value = value || '';
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    } else {
+      el.value = value || '';
+    }
+  };
+
+  // ✅ Fill ทุก field ตาม index ของ row
+  // index: 0=time, 1=site, 2=sn, 3=prefixing, 4=rinsing, ...
+  setField('prefixing',            row[3]);
+  setField('rinsing',              row[4]);
+  setField('amtWash1',             row[5]);
+  setField('amtWash2',             row[6]);
+  setField('extTime',              row[7]);
+  setField('prepMethod',           row[8]);
+  setField('mixed',                row[9]);
+  setField('stainType',            row[10]);
+  setField('fixing',               row[11]);
+  setField('bufferType',           row[12]);
+  setField('fan1',                 row[13]);
+  setField('fan2',                 row[14]);
+  setField('methanolPrefix',       row[15]);
+  setField('methanolFix',          row[16]);
+  setField('stainPrefix',          row[17]);
+  setField('undilutedStain1_time', row[18]);
+  setField('stain1_ratio',         row[19]);
+  setField('dilutedStain1_time',   row[20]);
+  setField('stain2_ratio',         row[21]);
+  setField('dilutedStain2_time',   row[22]);
+  setField('rinseCount',           row[23]);
+  setField('dryTime',              row[24]);
+  setField('heaterStatus',         row[25]);
+  setField('add_meth_time',        row[26]);
+  setField('add_undiluted_time',   row[27]);
+  setField('add_diluted_time',     row[28]);
+  setField('add_diluted2_time',    row[29]);
+  setField('add_meth_slides',      row[30]);
+  setField('add_undiluted_slides', row[31]);
+  setField('replace_meth_cond',    row[32]);
+  setField('replace_undiluted_cond', row[34]);
+  setField('replace_diluted1_cond',  row[36]);
+  setField('replace_diluted2_cond',  row[38]);
+
+  // Fill time pickers (HH:mm) สำหรับ Replacement
+  fillTimePicker('replace_meth',      row[33]);
+  fillTimePicker('replace_undiluted', row[35]);
+  fillTimePicker('replace_diluted1',  row[37]);
+  fillTimePicker('replace_diluted2',  row[39]);
+
+  // ✅ Reset: Site, S/N, Recorded By
+  setField('site', '');
+  setField('sn', '');
+  const recordedByEl = document.getElementById('recordedBy_Input');
+  if (recordedByEl) {
+    const { user } = getSession();
+    recordedByEl.value = user;
+  }
+
+  // trigger UI updates
+  handleStainTypeChange();
+  handleFixingChange();
+  initReplacementLogic();
+
+  Swal.fire({
+    icon: 'success',
+    title: 'Fill ข้อมูลสำเร็จ',
+    text: 'กรุณากรอก Site และ S/N ให้ครบก่อนบันทึก',
+    timer: 2000,
+    showConfirmButton: false
+  });
+}
+
+function fillTimePicker(prefix, timeStr) {
+  if (!timeStr || timeStr === '-' || timeStr === '') {
+    timeStr = '00:00';
+  }
+  // format: HH:mm หรือ H:mm
+  const parts = String(timeStr).split(':');
+  const hh = (parts[0] || '00').padStart(2, '0');
+  const mm = (parts[1] || '00').padStart(2, '0');
+
+  const hhEl = document.getElementById(`${prefix}_hh`);
+  const mmEl = document.getElementById(`${prefix}_mm`);
+  const valEl = document.getElementById(`${prefix}_val`);
+
+  if (hhEl) hhEl.value = hh;
+  if (mmEl) mmEl.value = mm;
+  if (valEl) valEl.value = `${hh}:${mm}`;
+}

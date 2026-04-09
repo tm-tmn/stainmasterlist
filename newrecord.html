@@ -115,6 +115,60 @@
     </div>
     <!-- /Change Password Modal -->
 
+    <!-- ✅ เพิ่ม: ปุ่มดึงข้อมูล + Modal -->
+    <div class="d-flex justify-content-end mb-4">
+      <button type="button" class="btn btn-outline-primary px-4 py-2 rounded-pill shadow-sm"
+        onclick="openLoadFromDBModal()">
+        <i class="bi bi-database-fill-down me-2"></i>ดึงข้อมูลจาก Database
+      </button>
+    </div>
+    
+    <!-- Modal เลือก Record -->
+    <div class="modal fade" id="loadFromDBModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content" style="border-radius: 20px; border: none;">
+          <div class="modal-header border-0 pt-4 px-4">
+            <h5 class="modal-title fw-bold">
+              <i class="bi bi-database-fill-down me-2 text-primary"></i>เลือกข้อมูลจาก Database
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body px-4 pb-4">
+            <!-- Search -->
+            <div class="input-group mb-3">
+              <span class="input-group-text bg-white border-end-0">
+                <i class="bi bi-search text-muted"></i>
+              </span>
+              <input type="text" id="dbSearchInput" class="form-control border-start-0"
+                placeholder="ค้นหาจาก Site หรือ S/N..."
+                oninput="filterDBTable(this.value)">
+            </div>
+            <!-- Table -->
+            <div class="table-responsive" style="max-height: 450px; overflow-y: auto;">
+              <table class="table table-hover align-middle" id="dbPickerTable">
+                <thead class="sticky-top" style="background: #1e293b;">
+                  <tr>
+                    <th class="text-white py-3 px-3">Site</th>
+                    <th class="text-white py-3 px-3">S/N</th>
+                    <th class="text-white py-3 px-3">Brand</th>
+                    <th class="text-white py-3 px-3">Staining</th>
+                    <th class="text-white py-3 px-3">Fixing</th>
+                    <th class="text-white py-3 px-3">Recorded By</th>
+                    <th class="text-white py-3 px-3 text-center">เลือก</th>
+                  </tr>
+                </thead>
+                <tbody id="dbPickerBody">
+                  <tr><td colspan="7" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                  </td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
     <div class="content-area flex-grow-1">
       <div class="admin-header-banner">
         <div class="container-fluid">

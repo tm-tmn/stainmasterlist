@@ -549,7 +549,17 @@ async function openLoadFromDBModal() {
         <div class="spinner-border text-primary" role="status"></div>
         <div class="mt-2 text-muted small">กำลังโหลดข้อมูล...</div>
       </td></tr>`;
-
+     const rows = data.slice(1).reverse();
+      cachedDBData = data;
+      window._allDBRows = rows;  // ✅ เก็บ master copy
+      renderDBPickerTable(rows);
+   } else {
+      const rows = cachedDBData.slice(1).reverse();
+      window._allDBRows = rows;  // ✅ เก็บ master copy
+      renderDBPickerTable(rows);
+   }
+  
+  }
     try {
       const { token, user } = getSession();
       const data = await callAPIGet({ action: 'getStainSheetData', token, user });

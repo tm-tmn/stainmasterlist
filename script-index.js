@@ -28,23 +28,34 @@ async function handleLogin() {
   });
 
   try {
-    // ✅ แทน google.script.run.checkLogin()
-    const res = await callAPI('checkLogin', { username: u, password: p });
+    // ✅ เปลี่ยนจากการใช้ callAPI มาเป็นการ Query ที่ตาราง userlogin ใน Supabase โดยตรง
+    const { data, error } = await _supabase
+      .from('userlogin') // ตรวจสอบชื่อตารางให้ตรงกับใน Supabase นะครับ
+      .select('*')
+      .eq('username', u)  // เช็ค username
+      .eq('password', p)  // เช็ค password (แบบพื้นฐาน)
+      .single();          // เอามาแค่แถวเดียว
 
-    if (res.status === 'Success') {
-      // ✅ เก็บลง localStorage ผ่าน saveSession() ใน script-common.js
-      saveSession(res);
-
-      Swal.close();
-
-      // ✅ Redirect ไปหน้า main (frontend จัดการเอง ไม่ต้องรอ URL จาก server)
-      window.location.href = '/stainmasterlist/datatable.html';
-
-    } else {
+    if (error || !data) {
+      // ถ้ามี Error หรือไม่เจอข้อมูล (Username/Password ผิด)
       Swal.fire('Error', 'Username หรือ Password ไม่ถูกต้อง', 'error');
+    } else {
+      // ✅ ถ้าเจอข้อมูล (Login สำเร็จ)
+      // สร้างข้อมูลจำลองให้ตรงกับที่ saveSession() ใน script-common.js ต้องการ
+      const loginData = {
+        token: btoa(`${u}|${new Date().getTime() + (60 * 60 * 1000)}`), // สร้าง token จำลอง (หมดอายุใน 1 ชม.)
+        userName: data.display_name || data.username, // ใช้ชื่อจากตาราง (ถ้ามี column display_name)
+        userAccount: data.username,
+        department: data.dept || 'Medical Lab'
+      };
+
+      saveSession(loginData);
+      Swal.close();
+      window.location.href = '/stainmasterlist/datatable.html';
     }
 
   } catch (e) {
+    console.error(e);
     Swal.fire('Error', 'ไม่สามารถเชื่อมต่อระบบได้ กรุณาลองใหม่อีกครั้ง', 'error');
   }
 }

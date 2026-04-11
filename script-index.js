@@ -30,11 +30,11 @@ async function handleLogin() {
   try {
     // ✅ เปลี่ยนจากการใช้ callAPI มาเป็นการ Query ที่ตาราง userlogin ใน Supabase โดยตรง
     const { data, error } = await _supabase
-      .from('userlogin') // ตรวจสอบชื่อตารางให้ตรงกับใน Supabase นะครับ
+      .from('userlogin')
       .select('*')
-      .eq('username', u)  // เช็ค username
-      .eq('password', p)  // เช็ค password (แบบพื้นฐาน)
-      .single();          // เอามาแค่แถวเดียว
+      .eq('Username', u)  // เปลี่ยน u เป็น U
+      .eq('Password', p)  // เปลี่ยน p เป็น P
+      .single();
 
     if (error || !data) {
       // ถ้ามี Error หรือไม่เจอข้อมูล (Username/Password ผิด)

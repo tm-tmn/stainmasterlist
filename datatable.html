@@ -179,9 +179,8 @@
   <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- ✅ โหลด script-common.js ก่อนเสมอ -->
   <script src="script-common.js"></script>
-
+  <script src="script-datatable.js"></script>
   <script>
     // ✅ แทน window.userName = "<?= userName ?>" ทั้งหมด
     document.addEventListener('DOMContentLoaded', function () {
@@ -204,9 +203,5 @@
       }
     });
   </script>
-
-  <!-- ✅ แทน <?!= include('JavaScriptdatatable') ?> และ <?!= include('JavaScriptCommon') ?> -->
-  <script src="script-datatable.js"></script>
-
 </body>
 </html>

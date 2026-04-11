@@ -43,10 +43,10 @@ async function handleLogin() {
       // ✅ ถ้าเจอข้อมูล (Login สำเร็จ)
       // สร้างข้อมูลจำลองให้ตรงกับที่ saveSession() ใน script-common.js ต้องการ
       const loginData = {
-        token: btoa(`${u}|${new Date().getTime() + (60 * 60 * 1000)}`), // สร้าง token จำลอง (หมดอายุใน 1 ชม.)
-        userName: data.display_name || data.username, // ใช้ชื่อจากตาราง (ถ้ามี column display_name)
-        userAccount: data.username,
-        department: data.dept || 'Medical Lab'
+          token: btoa(`${u}|${new Date().getTime() + (60 * 60 * 1000)}`),
+          userName: data.name,      // ในรูป Supabase ของคุณใช้ชื่อคอลัมน์ว่า name
+          userAccount: data.Username, // ใช้ U ตัวใหญ่
+          department: data.Department // ในรูป Supabase ของคุณใช้ Department
       };
 
       saveSession(loginData);

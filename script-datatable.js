@@ -148,14 +148,13 @@ async function initStainTable(callback) {
 function renderTableStructure(data) {
   if (!data || data.length === 0) return;
 
-  const rows = data.slice(1);
-  rows.reverse();
-
-  const displayCols = [1, 2, 9, 10, 11, 12, 18, 20, 22, 40];
+  // Supabase ส่งข้อมูลมาเป็น Array of Objects ไม่ต้อง slice(1)
+  const rows = data; 
 
   if ($.fn.DataTable.isDataTable('#stainTable')) $('#stainTable').DataTable().destroy();
   $('#stainTable').empty();
 
+  // สร้าง Header เหมือนเดิม
   let headerHtml = '<thead><tr>';
   headerHtml += '<th>Site</th><th>S/N</th><th>Brand</th><th>Staining</th>';
   headerHtml += '<th>Fixing</th><th>Buffer</th>';
@@ -167,27 +166,44 @@ function renderTableStructure(data) {
   $('#stainTable').append(headerHtml);
 
   let bodyHtml = '';
+  
   rows.forEach((row, idx) => {
-    let realSheetIndex = (data.length - 1) - idx;
+    // ใช้ชื่อ Column ตามที่คุณตั้งไว้ใน Supabase (สมมติว่าเป็นตัวใหญ่ตามรูปที่เคยส่งมา)
+    // หากคุณตั้งชื่อเป็นตัวเล็ก ให้แก้เป็นตัวเล็กนะครับ
+    const site = row.Site || '-';
+    const sn = row.SN || row["S/N"] || '-'; // เผื่อกรณีใช้ชื่อ S/N
+    const brand = row.Brand || '-';
+    const staining = row.Staining || '-';
+    const fixing = row.Fixing || '-';
+    const buffer = row.Buffer || '-';
+    const undiluted1 = row.Undiluted_1 || row["Undiluted 1"] || '-'; 
+    const diluted1 = row.Diluted_1 || row["Diluted 1"] || '-';
+    const diluted2 = row.Diluted_2 || row["Diluted 2"] || '-';
+    const recordedBy = row.Recorded_By || row["Recorded By"] || '-';
+    const rawTimestamp = row.Time;
+
+    // จัดการเรื่องเวลา
+    let d = new Date(rawTimestamp);
+    let displayTime = (!isNaN(d.getTime())) ? d.toLocaleString('th-TH').replace(',', '') : rawTimestamp;
+
     bodyHtml += '<tr>';
-    displayCols.forEach(i => {
-      let cellData = row[i] || '-';
-      if (i === 40) {
-        let rawTimestamp = row[0];
-        let d = new Date(rawTimestamp);
-        let displayTime = (!isNaN(d.getTime())) ? d.toLocaleString('th-TH').replace(',', '') : rawTimestamp;
-        bodyHtml += `<td><div class="d-flex flex-column align-items-center">
-                       <span class="badge-user mb-1">${cellData}</span>
-                       <small class="text-muted" style="font-size: 0.7rem;">${displayTime}</small>
-                     </div></td>`;
-      } else if ([18, 20, 22].includes(i)) {
-        bodyHtml += `<td><span class="fw-bold text-primary">${cellData}</span></td>`;
-      } else {
-        bodyHtml += `<td>${cellData}</td>`;
-      }
-    });
+    bodyHtml += `<td>${site}</td>`;
+    bodyHtml += `<td>${sn}</td>`;
+    bodyHtml += `<td>${brand}</td>`;
+    bodyHtml += `<td>${staining}</td>`;
+    bodyHtml += `<td>${fixing}</td>`;
+    bodyHtml += `<td>${buffer}</td>`;
+    bodyHtml += `<td><span class="fw-bold text-primary">${undiluted1}</span></td>`;
+    bodyHtml += `<td><span class="fw-bold text-primary">${diluted1}</span></td>`;
+    bodyHtml += `<td><span class="fw-bold text-primary">${diluted2}</span></td>`;
+    bodyHtml += `<td>
+                  <div class="d-flex flex-column align-items-center">
+                    <span class="badge-user mb-1">${recordedBy}</span>
+                    <small class="text-muted" style="font-size: 0.7rem;">${displayTime}</small>
+                  </div>
+                </td>`;
     bodyHtml += `<td class="text-center">
-                   <button class="btn btn-sm btn-view text-white rounded-pill px-3" onclick="openRecordDetail(${realSheetIndex})">
+                   <button class="btn btn-sm btn-view text-white rounded-pill px-3" onclick="openRecordDetail(${idx})">
                    <i class="bi bi-eye-fill me-1"></i> View</button>
                  </td>`;
     bodyHtml += '</tr>';
@@ -209,31 +225,82 @@ function openRecordDetail(rowIndex) {
   rowIndex = parseInt(rowIndex);
   if (!window.cachedStainData || !window.cachedStainData[rowIndex]) return;
 
-  const rowData = window.cachedStainData[rowIndex];
+  const data = window.cachedStainData[rowIndex];
+
+  // ✅ แมปชื่อคอลัมน์จาก Supabase (Object) ให้เป็นตัวแปรที่ใช้งานง่าย
+  // ตรวจสอบชื่อใน [] ให้ตรงกับชื่อคอลัมน์ใน Supabase ของคุณเป๊ะๆ นะครับ
+  const row = {
+    time: data["Time"],
+    site: data["Site"] || '-',
+    sn: data["S/N"] || data["SN"] || '-',
+    prefixing: data["Prefixing"] || '-',
+    rinsing: data["Rinsing"] || '-',
+    washing1: data["Washing_Solution_1"] || '-',
+    washing2: data["Washing_Solution_2"] || '-',
+    extended_time: data["Extended_Time"] || '-',
+    prep_method: data["Preparation_Method"] || '-',
+    brand: data["Brand"] || '-',
+    staining_type: data["Staining_Type"] || '-',
+    fixing_type: data["Fixing_Type"] || '-',
+    buffer_type: data["Buffer_Type"] || '-',
+    fan1: data["Fan_1"] || '-',
+    fan2: data["Fan_2"] || '-',
+    met_prefix: data["Met_Prefix"] || '-',
+    met_fix: data["Met_Fix"] || '-',
+    stain_prefix: data["Stain_Prefix"] || '-',
+    undilute_stain1: data["Undiluted_Stain_1"] || '-',
+    ratio1: data["Stain_1_Ratio"] || '-',
+    diluted_stain1: data["Diluted_Stain_1"] || '-',
+    ratio2: data["Stain_2_Ratio"] || '-',
+    diluted_stain2: data["Diluted_Stain_2"] || '-',
+    rinse_count: data["Rinse_Count"] || '-',
+    dry_time: data["Dry_Time"] || '-',
+    heater: data["Heater"] || '-',
+    // Addition Setting
+    add_met: data["Add_Methanol"] || '-',
+    add_undilute1: data["Add_Undiluted_1"] || '-',
+    add_diluted1: data["Add_Diluted_1"] || '-',
+    add_diluted2: data["Add_Diluted_2"] || '-',
+    add_met_slides: data["Add_Methanol_Slides"] || '0',
+    add_undilute1_slides: data["Add_Undiluted_1_Slides"] || '0',
+    // Replacement Setting
+    rep_met: data["Rep_Methanol"] || '-',
+    rep_met_val: data["Rep_Methanol_Val"] || '-',
+    rep_undilute1: data["Rep_Undiluted_1"] || '-',
+    rep_undilute1_val: data["Rep_Undiluted_1_Val"] || '-',
+    rep_diluted1: data["Rep_Diluted_1"] || '-',
+    rep_diluted1_val: data["Rep_Diluted_1_Val"] || '-',
+    rep_diluted2: data["Rep_Diluted_2"] || '-',
+    rep_diluted2_val: data["Rep_Diluted_2_Val"] || '-',
+    recordedBy: data["Recorded_By"] || '-'
+  };
+
   let html = '<table class="table table-bordered align-middle mb-0" style="border: 2px solid #000; width: 100%;">';
   html += '<tbody>';
 
-  html += '<tr style="border-bottom: 1px solid #000;">';
-  html += ' <th colspan="2" class="text-center bg-light" style="border-right: 2px solid #000; font-weight: bold; width: 70%; padding: 8px;">Site</th>';
-  html += ' <td class="text-center fw-bold text-primary" style="width: 30%; padding: 8px;">' + (rowData[1] || '-') + '</td>';
-  html += '</tr>';
-  html += '<tr style="border-bottom: 2px solid #000;">';
-  html += ' <th colspan="2" class="text-center bg-light" style="border-right: 2px solid #000; font-weight: bold; padding: 8px;">S/N</th>';
-  html += ' <td class="text-center fw-bold text-primary" style="padding: 8px;">' + (rowData[2] || '-') + '</td>';
-  html += '</tr>';
+  // Site & S/N
+  html += `<tr style="border-bottom: 1px solid #000;">
+            <th colspan="2" class="text-center bg-light" style="border-right: 2px solid #000; font-weight: bold; width: 70%; padding: 8px;">Site</th>
+            <td class="text-center fw-bold text-primary" style="width: 30%; padding: 8px;">${row.site}</td>
+           </tr>`;
+  html += `<tr style="border-bottom: 2px solid #000;">
+            <th colspan="2" class="text-center bg-light" style="border-right: 2px solid #000; font-weight: bold; padding: 8px;">S/N</th>
+            <td class="text-center fw-bold text-primary" style="padding: 8px;">${row.sn}</td>
+           </tr>`;
 
-  html += '<tr>';
-  html += ' <th rowspan="6" class="text-center bg-light" style="border-right: 1px solid #000; vertical-align: middle; font-weight: bold; width: 30%;">Service Setting</th>';
-  html += ' <th class="bg-light" style="border-right: 2px solid #000; font-weight: normal; width: 40%; padding: 8px;">Prefixing</th>';
-  html += ' <td class="text-center" style="width: 30%; padding: 8px;">' + (rowData[3] || '-') + '</td>';
-  html += '</tr>';
+  // Service Setting
+  html += `<tr>
+            <th rowspan="6" class="text-center bg-light" style="border-right: 1px solid #000; vertical-align: middle; font-weight: bold; width: 30%;">Service Setting</th>
+            <th class="bg-light" style="border-right: 2px solid #000; font-weight: normal; width: 40%; padding: 8px;">Prefixing</th>
+            <td class="text-center" style="width: 30%; padding: 8px;">${row.prefixing}</td>
+           </tr>`;
 
   const subFields = [
-    { label: 'Rinsing (rinse water)', val: rowData[4] },
-    { label: 'Amount of washing solution for diluted stain 1 pool', val: rowData[5] },
-    { label: 'Amount of washing solution for diluted stain 2 pool', val: rowData[6] },
-    { label: 'Extended time for cleaning stain pool at shutdown', val: rowData[7] },
-    { label: 'Preparation method of dilute stain 1', val: rowData[8] }
+    { label: 'Rinsing (rinse water)', val: row.rinsing },
+    { label: 'Amount of washing solution for diluted stain 1 pool', val: row.washing1 },
+    { label: 'Amount of washing solution for diluted stain 2 pool', val: row.washing2 },
+    { label: 'Extended time for cleaning stain pool at shutdown', val: row.extended_time },
+    { label: 'Preparation method of dilute stain 1', val: row.prep_method }
   ];
   subFields.forEach((item, index) => {
     const borderBottom = (index === subFields.length - 1) ? '2px solid #000' : '1px solid #000';

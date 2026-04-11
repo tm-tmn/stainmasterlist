@@ -100,26 +100,46 @@ async function submitSelfChangePass() {
 }
 
 // ============================================================
-// Init Table
+// Init Table (ปรับปรุงสำหรับ Supabase)
 // ============================================================
-function initStainTable(callback) {
-  Swal.fire({ title: 'กำลังดึงข้อมูล.....', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+async function initStainTable(callback) {
+  Swal.fire({ 
+    title: 'กำลังดึงข้อมูล.....', 
+    allowOutsideClick: false, 
+    didOpen: () => Swal.showLoading() 
+  });
 
-  const { token, user } = getSession();
+  try {
+    // ✅ ดึงข้อมูลจากตาราง 'Stain' ใน Supabase
+    // หมายเหตุ: ชื่อตารางต้องตรงกับใน Supabase (Case Sensitive)
+    const { data, error } = await _supabase
+      .from('Stain') 
+      .select('*')
+      .order('Time', { ascending: false }); // เรียงลำดับเวลาล่าสุดขึ้นก่อน
 
-  // ✅ แทน google.script.run.getStainSheetData()
-  callAPIGet({ action: 'getStainSheetData', token, user })
-    .then(data => {
-      if (!data || data.length <= 1) {
-        Swal.fire('ข้อมูลว่างเปล่า', 'ไม่พบข้อมูลในระบบ', 'info');
-        return;
-      }
-      window.cachedStainData = data;
-      renderTableStructure(data);
-      if (callback && typeof callback === 'function') callback();
-      Swal.close();
-    })
-    .catch(() => Swal.fire('Error', 'การเชื่อมต่อผิดพลาด', 'error'));
+    if (error) throw error;
+
+    if (!data || data.length === 0) {
+      Swal.fire('ข้อมูลว่างเปล่า', 'ไม่พบข้อมูลในระบบ', 'info');
+      return;
+    }
+
+    // เก็บข้อมูลไว้ใน Cache เหมือนเดิมเพื่อใช้ในฟังก์ชันอื่นๆ
+    window.cachedStainData = data;
+
+    // ✅ ส่งข้อมูลไปสร้างโครงสร้างตาราง
+    renderTableStructure(data);
+
+    if (callback && typeof callback === 'function') {
+      callback();
+    }
+    
+    Swal.close();
+
+  } catch (err) {
+    console.error('Supabase Error:', err);
+    Swal.fire('Error', 'การเชื่อมต่อผิดพลาด: ' + err.message, 'error');
+  }
 }
 
 // ============================================================

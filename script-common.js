@@ -3,7 +3,7 @@
 // ============================================================
 
 // --- Supabase Config ---
-const SUPABASE_URL = "https://qdhlflszbmddfpfblirs.supabase.co";
+const SUPABASE_URL = "https://qdhiflszbmddfpfblirs.supabase.co";
 const SUPABASE_KEY = "sb_publishable_hX3NzN7uLEqeGCgDVPObSA_ZMa9K0qx"; // นำมาจากหน้า Dashboard > API Keys
 
 // สร้างตัวเชื่อมต่อ (Client)

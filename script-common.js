@@ -1,29 +1,28 @@
 // ============================================================
-// script-common.js
+// script-common.js (Updated for Supabase)
 // ============================================================
 
-// --- Config ---
-// ✅ ใส่ URL ของ Apps Script ที่ Deploy แล้วตรงนี้
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz7jbHHtVZyAc0cJhfPPaF8RtLuMPI8PR6z5xjjO3DUQh-hgQ4hm5TPUJ2yKbGEErDt/exec";
+// --- Supabase Config ---
+const SUPABASE_URL = "https://qdhlflszbmddfpfblirs.supabase.co";
+const SUPABASE_KEY = "sb_publishable_hX3NzN7uLEqeGCgDVPObSA_ZMa9K0qx"; // นำมาจากหน้า Dashboard > API Keys
 
-// --- Helper: POST ---
+// สร้างตัวเชื่อมต่อ (Client)
+const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+/**
+ * หมายเหตุ: 
+ * เราจะเก็บฟังก์ชัน callAPI และ callAPIGet ไว้ชั่วคราวเพื่อให้โค้ดเก่าไม่ Error 
+ * แต่ในอนาคตเราจะค่อยๆ เปลี่ยนไปใช้คำสั่งของ _supabase โดยตรงครับ
+ */
+
+// --- Helper: POST (ปรับปรุงให้ใช้ Supabase แทน) ---
 async function callAPI(action, body = {}) {
-  const res = await fetch(APPS_SCRIPT_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain" },
-    body: JSON.stringify({ action, ...body })
-  });
-  return res.json();
+  console.log(`Calling Action: ${action}`, body);
+  // ตรงนี้เราจะเว้นไว้ก่อน เพราะแต่ละ action (login, logout, insert) 
+  // ใน Supabase จะใช้คำสั่งต่างกัน เดี๋ยวเราไปแก้ที่ไฟล์เฉพาะทางครับ
 }
 
-// --- Helper: GET ---
-async function callAPIGet(params = {}) {
-  const qs = new URLSearchParams(params).toString();
-  const res = await fetch(`${APPS_SCRIPT_URL}?${qs}`);
-  return res.json();
-}
-
-// --- Session Helpers ---
+// --- Session Helpers --- (ใช้ของเดิมได้เลย)
 function getSession() {
   return {
     token:       localStorage.getItem('stain_token')   || '',
